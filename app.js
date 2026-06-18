@@ -708,63 +708,58 @@ function addItemFromForm(event) {
 }
 
 async function startBarcodeScanner() {
-  // --- Tentativa 1: QuaggaJS (prioritário, funciona melhor em iOS) ---
-  try {
-    // Se o Quagga não estiver carregado, tenta carregá-lo dinamicamente
-    if (typeof Quagga === 'undefined') {
-      await loadScript('https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js');
-    }
-
-    const video = refs.barcodeVideo;
-
-    // Inicializar o Quagga (ele gere o stream de vídeo sozinho)
-    Quagga.init({
-      inputStream: {
-        type: 'LiveStream',
-        target: video,          // elemento <video> onde vai mostrar a imagem
-        constraints: {
-          width: 480,
-          height: 360,
-          facingMode: 'environment'
-        }
-      },
-      decoder: {
-        readers: ['ean_reader', 'ean_8_reader', 'upc_reader']
-      }
-    }, (err) => {
-      if (err) {
-        console.warn('Quagga falhou, a usar fallback BarcodeDetector.', err);
-        // Se o Quagga falhar, tenta o BarcodeDetector nativo
-        startBarcodeDetectorFallback();
-        return;
-      }
-      Quagga.start();
-      refs.scannerFrame.classList.add('scanning');
-      refs.stopCameraButton.hidden = false;
-      refs.startCameraButton.disabled = true;
-      refs.scannerStatus.textContent = 'Scanner Quagga ativo – aproxime o código.';
-    });
-
-    // Quando detetar um código
-    Quagga.onDetected((data) => {
-      const code = data.codeResult.code;
-      if (code) {
-        navigator.vibrate?.(60);
-        refs.barcodeInput.value = code;
-        refs.scannerStatus.textContent = `Código lido: ${code}`;
-        stopBarcodeScanner();  // para o Quagga e a câmara
-        lookupBarcode(code);
-      }
-    });
-
-    // Guardar referência para parar depois
-    window.__quaggaRunning = true;
-
-  } catch (error) {
-    console.warn('Erro ao iniciar Quagga, a usar fallback BarcodeDetector.', error);
-    // Se algo correr mal no Quagga, tenta o BarcodeDetector nativo
-    startBarcodeDetectorFallback();
+// --- Tentativa 1: QuaggaJS (prioritário) ---
+try {
+  if (typeof Quagga === 'undefined') {
+    await loadScript('https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js');
   }
+
+  // Usar o container #scannerFrame em vez do video diretamente
+  const container = refs.scannerFrame;
+
+  Quagga.init({
+    inputStream: {
+      type: 'LiveStream',
+      target: container,    // <-- container onde o Quagga vai criar o video
+      constraints: {
+        width: 480,
+        height: 360,
+        facingMode: 'environment'
+      }
+    },
+    decoder: {
+      readers: ['ean_reader', 'ean_8_reader', 'upc_reader']
+    }
+  }, (err) => {
+    if (err) {
+      console.warn('Quagga falhou, a usar fallback BarcodeDetector.', err);
+      startBarcodeDetectorFallback();
+      return;
+    }
+    Quagga.start();
+    refs.scannerFrame.classList.add('scanning');
+    refs.stopCameraButton.hidden = false;
+    refs.startCameraButton.disabled = true;
+    refs.scannerStatus.textContent = 'Scanner Quagga ativo – aproxime o código.';
+  });
+
+  Quagga.onDetected((data) => {
+    const code = data.codeResult.code;
+    if (code) {
+      navigator.vibrate?.(60);
+      refs.barcodeInput.value = code;
+      refs.scannerStatus.textContent = `Código lido: ${code}`;
+      stopBarcodeScanner();
+      lookupBarcode(code);
+    }
+  });
+
+  window.__quaggaRunning = true;
+
+} catch (error) {
+  console.warn('Erro ao iniciar Quagga, a usar fallback BarcodeDetector.', error);
+  startBarcodeDetectorFallback();
+}
 }
 
 // --- Função auxiliar para o fallback BarcodeDetector (nativo) ---
