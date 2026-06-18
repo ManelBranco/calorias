@@ -708,72 +708,91 @@ function addItemFromForm(event) {
 }
 
 async function startBarcodeScanner() {
-  // --- Tentativa 1: BarcodeDetector nativo (se disponível) ---
-  if ('BarcodeDetector' in window) {
-    try {
-      barcodeDetector = new BarcodeDetector({
-        formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39']
-      });
-      scannerStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } },
-        audio: false
-      });
-      refs.barcodeVideo.srcObject = scannerStream;
-      await refs.barcodeVideo.play();
-      refs.scannerFrame.classList.add('scanning');
-      refs.stopCameraButton.hidden = false;
-      refs.startCameraButton.disabled = true;
-      refs.scannerStatus.textContent = 'Aponta a câmara para o código de barras.';
-      scanBarcodeFrame(); // inicia o loop com requestAnimationFrame
-      return;
-    } catch (error) {
-      console.warn('BarcodeDetector falhou, a usar fallback ZXing.', error);
-      // Se falhar (ex: permissão negada), continua para o fallback
-    }
-  }
-
-  // --- Fallback com ZXing (funciona em qualquer browser com getUserMedia) ---
+  // --- Tentativa 1: QuaggaJS (prioritário, funciona melhor em iOS) ---
   try {
-    // Carregar a biblioteca ZXing se ainda não estiver disponível
-    if (typeof ZXing === 'undefined') {
-      await loadScript('https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js');
-      await loadScript('https://unpkg.com/@zxing/browser@0.1.0/umd/index.min.js');
+    // Se o Quagga não estiver carregado, tenta carregá-lo dinamicamente
+    if (typeof Quagga === 'undefined') {
+      await loadScript('https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js');
     }
 
     const video = refs.barcodeVideo;
-    const stream = await navigator.mediaDevices.getUserMedia({
+
+    // Inicializar o Quagga (ele gere o stream de vídeo sozinho)
+    Quagga.init({
+      inputStream: {
+        type: 'LiveStream',
+        target: video,          // elemento <video> onde vai mostrar a imagem
+        constraints: {
+          width: 480,
+          height: 360,
+          facingMode: 'environment'
+        }
+      },
+      decoder: {
+        readers: ['ean_reader', 'ean_8_reader', 'upc_reader']
+      }
+    }, (err) => {
+      if (err) {
+        console.warn('Quagga falhou, a usar fallback BarcodeDetector.', err);
+        // Se o Quagga falhar, tenta o BarcodeDetector nativo
+        startBarcodeDetectorFallback();
+        return;
+      }
+      Quagga.start();
+      refs.scannerFrame.classList.add('scanning');
+      refs.stopCameraButton.hidden = false;
+      refs.startCameraButton.disabled = true;
+      refs.scannerStatus.textContent = 'Scanner Quagga ativo – aproxime o código.';
+    });
+
+    // Quando detetar um código
+    Quagga.onDetected((data) => {
+      const code = data.codeResult.code;
+      if (code) {
+        navigator.vibrate?.(60);
+        refs.barcodeInput.value = code;
+        refs.scannerStatus.textContent = `Código lido: ${code}`;
+        stopBarcodeScanner();  // para o Quagga e a câmara
+        lookupBarcode(code);
+      }
+    });
+
+    // Guardar referência para parar depois
+    window.__quaggaRunning = true;
+
+  } catch (error) {
+    console.warn('Erro ao iniciar Quagga, a usar fallback BarcodeDetector.', error);
+    // Se algo correr mal no Quagga, tenta o BarcodeDetector nativo
+    startBarcodeDetectorFallback();
+  }
+}
+
+// --- Função auxiliar para o fallback BarcodeDetector (nativo) ---
+async function startBarcodeDetectorFallback() {
+  if (!('BarcodeDetector' in window)) {
+    refs.scannerStatus.textContent = 'Nenhum leitor disponível. Usa a entrada manual.';
+    showToast('Leitor de código não suportado neste dispositivo.');
+    return;
+  }
+
+  try {
+    barcodeDetector = new BarcodeDetector({
+      formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39']
+    });
+    scannerStream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } },
       audio: false
     });
-    video.srcObject = stream;
-    await video.play();
+    refs.barcodeVideo.srcObject = scannerStream;
+    await refs.barcodeVideo.play();
     refs.scannerFrame.classList.add('scanning');
     refs.stopCameraButton.hidden = false;
     refs.startCameraButton.disabled = true;
-    refs.scannerStatus.textContent = 'Scanner ZXing ativo – aponta para o código.';
-
-    // Criar o leitor ZXing
-    const reader = new ZXing.BrowserMultiFormatReader();
-    reader.decodeFromVideoElement(video, (result, error) => {
-      if (result) {
-        const barcode = result.getText();
-        if (barcode) {
-          navigator.vibrate?.(60);
-          refs.barcodeInput.value = barcode;
-          refs.scannerStatus.textContent = `Código detetado: ${barcode}`;
-          stopBarcodeScanner(); // para a câmara e o leitor
-          lookupBarcode(barcode);
-        }
-      }
-      // Ignoramos erros (são normais enquanto não há código)
-    });
-
-    // Guardar referência para conseguir parar depois
-    window.__zxingReader = reader;
-
+    refs.scannerStatus.textContent = 'Aponta a câmara para o código de barras.';
+    scanBarcodeFrame(); // loop com requestAnimationFrame
   } catch (error) {
-    refs.scannerStatus.textContent = 'Não foi possível aceder à câmara. Usa a entrada manual.';
-    showToast('Câmara indisponível neste dispositivo.');
+    refs.scannerStatus.textContent = 'Erro: ' + (error.message || 'câmara indisponível');
+    showToast('Falha ao aceder à câmara.');
     console.error(error);
   }
 }
@@ -803,26 +822,27 @@ async function scanBarcodeFrame() {
 }
 
 async function stopBarcodeScanner() {
-  // Cancelar o loop do BarcodeDetector (se estiver ativo)
+  // Parar o Quagga se estiver ativo
+  if (window.__quaggaRunning) {
+    try {
+      Quagga.stop();
+      window.__quaggaRunning = false;
+    } catch (e) { /* ignorar */ }
+  }
+
+  // Parar o BarcodeDetector nativo (se estiver em loop)
   if (scannerAnimationId) {
     cancelAnimationFrame(scannerAnimationId);
     scannerAnimationId = null;
   }
 
-  // Parar o leitor ZXing (se estiver ativo)
-  if (window.__zxingReader) {
-    try {
-      await window.__zxingReader.reset();
-      window.__zxingReader = null;
-    } catch (e) { /* ignorar */ }
-  }
-
-  // Parar o stream de vídeo
+  // Parar o stream de vídeo (caso tenha sido iniciado manualmente)
   if (scannerStream) {
     scannerStream.getTracks().forEach(track => track.stop());
     scannerStream = null;
   }
 
+  // Limpar o vídeo
   refs.barcodeVideo.pause();
   refs.barcodeVideo.srcObject = null;
   refs.scannerFrame.classList.remove('scanning');
