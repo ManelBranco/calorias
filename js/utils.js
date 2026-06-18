@@ -19,7 +19,7 @@ export function formatGrams(value) {
 }
 
 export function decimalToInput(value) {
-  return String(Math.round(Number(value || 0) * 10) / 10).replace(".", ",");
+  return String(Math.round(Number(value || 0) * 100) / 100).replace(".", ",");
 }
 
 export function showToast(message) {

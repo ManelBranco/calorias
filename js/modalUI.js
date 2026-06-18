@@ -55,6 +55,29 @@ export function openModal(meal = "snacks", editItem_ = null) {
     document.querySelector("#modalTitle").textContent = "Editar alimento";
     submitButton.textContent = "Atualizar";
     document.querySelector("#itemNameInput").value = editingItem.name;
+    document.querySelector("#packageQuantityInput").value = editingItem.packageQuantity ? decimalToInput(editingItem.packageQuantity) : "";
+    document.querySelector("#packagePriceInput").value = editingItem.packagePrice ? decimalToInput(editingItem.packagePrice) : "";
+    document.querySelector("#itemQuantityInput").value = decimalToInput(editingItem.quantity || 100);
+    document.querySelector("#itemCaloriesInput").value = Math.round(editingItem.calories);
+    document.querySelector("#itemProteinInput").value = decimalToInput(editingItem.protein);
+    document.querySelector("#itemFatInput").value = decimalToInput(editingItem.fat);
+    document.querySelector("#itemCarbsInput").value = decimalToInput(editingItem.carbs);
+    document.querySelector("#itemPriceInput").value = decimalToInput(editingItem.price);
+    document.querySelector("#itemMealSelect").value = editingItem.meal;
+  } else {
+    document.querySelector("#modalTitle").textContent = "Adicionar alimento";
+    submitButton.textContent = "Guardar alimento";
+    document.querySelector("#itemMealSelect").value = meal;
+    document.querySelector("#packageQuantityInput").value = "";
+    document.querySelector("#packagePriceInput").value = "";
+    document.querySelector("#itemQuantityInput").value = "100";
+    document.querySelector("#itemPriceInput").value = "0,00";
+  }
+
+  if (editingItem) {
+    document.querySelector("#modalTitle").textContent = "Editar alimento";
+    submitButton.textContent = "Atualizar";
+    document.querySelector("#itemNameInput").value = editingItem.name;
     document.querySelector("#itemQuantityInput").value = decimalToInput(editingItem.quantity || 100);
     document.querySelector("#itemCaloriesInput").value = Math.round(editingItem.calories);
     document.querySelector("#itemProteinInput").value = decimalToInput(editingItem.protein);
@@ -204,11 +227,20 @@ function bindSearch() {
 }
 
 function bindForm() {
-  document.querySelector("#itemQuantityInput").addEventListener("input", updateItemNutritionFromProduct);
+  document.querySelector("#packageQuantityInput").addEventListener("input", updateCalculatedPrice);
+  document.querySelector("#packagePriceInput").addEventListener("input", updateCalculatedPrice);
+  
+  document.querySelector("#itemQuantityInput").addEventListener("input", () => {
+    updateItemNutritionFromProduct();
+    updateCalculatedPrice();
+  });
+
   document.querySelector("#itemForm").addEventListener("submit", e => {
     e.preventDefault();
     const data = {
       name: document.querySelector("#itemNameInput").value,
+      packageQuantity: parseDecimal(document.querySelector("#packageQuantityInput").value),
+      packagePrice: parseDecimal(document.querySelector("#packagePriceInput").value),
       quantity: parseDecimal(document.querySelector("#itemQuantityInput").value),
       calories: Math.round(parseDecimal(document.querySelector("#itemCaloriesInput").value)),
       protein: parseDecimal(document.querySelector("#itemProteinInput").value),
@@ -241,4 +273,16 @@ export function init() {
   bindModalChrome();
   bindSearch();
   bindForm();
+}
+
+function updateCalculatedPrice() {
+  const packQtd = parseDecimal(document.querySelector("#packageQuantityInput").value);
+  const packPrice = parseDecimal(document.querySelector("#packagePriceInput").value);
+  const itemQtd = parseDecimal(document.querySelector("#itemQuantityInput").value);
+
+  // Regra de 3 simples se os campos da embalagem existirem
+  if (packQtd > 0 && packPrice > 0 && itemQtd > 0) {
+    const finalPrice = (packPrice / packQtd) * itemQtd;
+    document.querySelector("#itemPriceInput").value = decimalToInput(finalPrice);
+  }
 }

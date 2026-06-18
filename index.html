@@ -127,12 +127,16 @@
             </article>
 
             <article class="card spending-card" style="grid-column: 1 / -1;">
-              <div class="card-header">
+              <div class="card-header" style="flex-wrap: wrap;">
                 <div>
                   <p class="eyebrow">Histórico financeiro</p>
                   <h3>Evolução de Gastos</h3>
                 </div>
-                <span class="pill">Por dia</span>
+                <div class="segmented-control" id="spendingTimeRange" style="margin-top: 0;">
+                  <button class="segment active" type="button" data-range="7">7 Dias</button>
+                  <button class="segment" type="button" data-range="30">1 Mês</button>
+                  <button class="segment" type="button" data-range="365">1 Ano</button>
+                </div>
               </div>
               <div class="chart-box"><canvas id="spendingChart" style="max-height: 220px; width: 100%;" aria-label="Gráfico de evolução de gastos" role="img"></canvas></div>
             </article>
@@ -262,9 +266,14 @@
           <label>Nome do alimento<input id="itemNameInput" type="text" required placeholder="Ex.: Peito de frango" /></label>
 
           <div class="form-grid">
-            <label>Quantidade<span class="input-wrapper"><input id="itemQuantityInput" type="text" inputmode="decimal" placeholder="100" /><small>g/ml</small></span></label>
+            <label>Qtd. Embalagem<span class="input-wrapper"><input id="packageQuantityInput" type="text" inputmode="decimal" placeholder="Ex: 1000" /><small>g/ml</small></span></label>
+            <label>Preço Embalagem<span class="input-wrapper"><input id="packagePriceInput" type="text" inputmode="decimal" placeholder="Ex: 30,00" /><small>€</small></span></label>
+          </div>
+
+          <div class="form-grid">
+            <label>Qtd. Consumida<span class="input-wrapper"><input id="itemQuantityInput" type="text" inputmode="decimal" placeholder="100" /><small>g/ml</small></span></label>
             <label>Calorias<span class="input-wrapper"><input id="itemCaloriesInput" type="number" min="0" step="1" required /><small>kcal</small></span></label>
-            <label>Preço pago<span class="input-wrapper"><input id="itemPriceInput" type="text" inputmode="decimal" placeholder="0,00" /><small>€</small></span></label>
+            <label>Custo da Dose<span class="input-wrapper"><input id="itemPriceInput" type="text" inputmode="decimal" placeholder="0,00" /><small>€</small></span></label>
           </div>
 
           <div class="nutrient-grid">

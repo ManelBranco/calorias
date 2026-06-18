@@ -94,6 +94,8 @@ export function normalizeItem(item) {
     carbs: toSafeNumber(source.carbs),
     price: toSafeNumber(source.price),
     quantity: toSafeNumber(source.quantity),
+    packageQuantity: toSafeNumber(source.packageQuantity), // NOVO
+    packagePrice: toSafeNumber(source.packagePrice), // NOVO
     barcode: typeof source.barcode === "string" ? source.barcode : "",
     date: typeof source.date === "string" ? source.date : new Date().toISOString(),
     meal: source.meal && MEALS[source.meal] ? source.meal : "snacks",

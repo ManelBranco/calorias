@@ -1,8 +1,9 @@
 import { state, onChange, setProfileField, resetProfile, ACTIVITY_LEVELS, GOALS, MACRO_PLANS } from "./state.js";
 import { calculateProfile, calculateMusclePotential } from "./tdee.js";
 import { calculateMacroTargets } from "./macro.js";
-import { updateSpendingChart } from "./charts.js";
+import { updateSpendingChart, setSpendingRange } from "./charts.js";
 import { numberFormatter, formatCalories, parseDecimal } from "./utils.js";
+
 
 function renderSelectOptions() {
   document.querySelector("#activitySelect").innerHTML = Object.entries(ACTIVITY_LEVELS)
@@ -69,6 +70,16 @@ function bindEvents() {
     if (goalBtn) setProfileField("goal", goalBtn.dataset.goal);
     const macroPlanBtn = e.target.closest("[data-macro-plan]");
     if (macroPlanBtn) setProfileField("macroPlan", macroPlanBtn.dataset.macroPlan);
+  });
+  document.querySelector("#spendingTimeRange")?.addEventListener("click", e => {
+    const btn = e.target.closest(".segment");
+    if (!btn) return;
+
+    document.querySelectorAll("#spendingTimeRange .segment").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+
+    setSpendingRange(Number(btn.dataset.range));
+    updateSpendingChart(state.items);
   });
 }
 

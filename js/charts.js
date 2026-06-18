@@ -4,6 +4,13 @@ let macroChartInstance = null;
 let weightChartInstance = null;
 let spendingChartInstance = null;
 
+// Variáveis de controlo para o filtro do gráfico de gastos
+export let currentSpendingRange = 7;
+
+export function setSpendingRange(days) {
+  currentSpendingRange = days;
+}
+
 const dayMonthFormatter = new Intl.DateTimeFormat("pt-PT", { day: "2-digit", month: "2-digit" });
 
 function formatDayLabel(isoDate) {
@@ -13,6 +20,7 @@ function formatDayLabel(isoDate) {
   return dayMonthFormatter.format(date);
 }
 
+// 1. Gráfico de Macronutrientes (Donut)
 const updateMacroDonutInternal = debounce((protein, fat, carbs) => {
   const canvas = document.getElementById("macroDonutChart");
   if (!canvas) return;
@@ -36,7 +44,8 @@ const updateMacroDonutInternal = debounce((protein, fat, carbs) => {
       }]
     },
     options: {
-      responsive: false,
+      responsive: true,
+      maintainAspectRatio: false,
       cutout: "72%",
       plugins: { legend: { display: false } }
     }
@@ -47,6 +56,7 @@ export function updateMacroDonut(protein, fat, carbs) {
   updateMacroDonutInternal(protein, fat, carbs);
 }
 
+// 2. Gráfico de Progresso de Peso
 const updateWeightProgressChartInternal = debounce((weightHistory) => {
   const canvas = document.getElementById("weightProgressChart");
   if (!canvas) return;
@@ -92,17 +102,36 @@ export function updateWeightProgressChart(weightHistory) {
   updateWeightProgressChartInternal(weightHistory);
 }
 
+// 3. Gráfico de Gastos (Barra) - Com lógica de filtro
 const updateSpendingChartInternal = debounce((items) => {
   const canvas = document.getElementById("spendingChart");
   if (!canvas) return;
   const ctx = canvas.getContext("2d");
 
-  // Agrupa o preço dos itens por data (YYYY-MM-DD)
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const cutoffDate = new Date(now);
+  cutoffDate.setDate(now.getDate() - currentSpendingRange + 1);
+
   const totalsByDay = {};
+
+  // Preenche os últimos N dias a zeros
+  for (let i = 0; i < currentSpendingRange; i++) {
+    let d = new Date(now);
+    d.setDate(now.getDate() - i);
+    totalsByDay[d.toISOString().slice(0, 10)] = 0;
+  }
+
   (items || []).forEach(item => {
-    const day = String(item.date || "").slice(0, 10);
-    if (!day) return;
-    totalsByDay[day] = (totalsByDay[day] || 0) + Number(item.price || 0);
+    if (!item.date) return;
+    const itemDateStr = String(item.date).slice(0, 10);
+    const itemDate = new Date(itemDateStr);
+    
+    if (itemDate >= cutoffDate) {
+      if (totalsByDay[itemDateStr] !== undefined) {
+        totalsByDay[itemDateStr] += Number(item.price || 0);
+      }
+    }
   });
 
   const sortedDays = Object.keys(totalsByDay).sort();
