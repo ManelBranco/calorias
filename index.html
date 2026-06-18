@@ -3,14 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta
-      name="description"
-      content="Webapp em PT-PT para calcular TDEE, acompanhar macronutrientes, calorias diárias e gastos em alimentação."
-    />
+    <meta name="description" content="Webapp em PT-PT para calcular TDEE, acompanhar macronutrientes, calorias diárias e gastos em alimentação." />
     <title>Calorias & Orçamento</title>
     <link rel="stylesheet" href="styles.css" />
     <script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
     <script src="https://unpkg.com/@zxing/browser@0.1.0/umd/index.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   </head>
   <body>
     <div class="app-shell">
@@ -37,14 +35,9 @@
             <div>
               <p class="eyebrow">Perfil TDEE</p>
               <h2 id="profileTitle">Calcula calorias, macros e potencial físico</h2>
-              <p>
-                Usa a equação de Mifflin-St Jeor, ajusta pela tua atividade e escolhe
-                entre manutenção, cutting ou bulking.
-              </p>
+              <p>Usa a equação de Mifflin-St Jeor, ajusta pela tua atividade e escolhe entre manutenção, cutting ou bulking.</p>
             </div>
-            <button class="primary-button" id="goToDiaryButton" type="button">
-              Abrir diário
-            </button>
+            <button class="primary-button" id="goToDiaryButton" type="button">Abrir diário</button>
           </div>
 
           <div class="content-grid">
@@ -54,49 +47,25 @@
                   <p class="eyebrow">Dados pessoais</p>
                   <h3>Calculadora TDEE</h3>
                 </div>
-                <button class="text-button" id="resetProfileButton" type="button">
-                  Repor
-                </button>
+                <button class="text-button" id="resetProfileButton" type="button">Repor</button>
               </div>
 
               <form id="profileForm" class="profile-form" autocomplete="off">
                 <fieldset>
                   <legend>Sexo biológico</legend>
                   <div class="segmented-control" role="radiogroup" aria-label="Sexo biológico">
-                    <button class="segment active" type="button" data-gender="male">
-                      Homem
-                    </button>
-                    <button class="segment" type="button" data-gender="female">
-                      Mulher
-                    </button>
+                    <button class="segment active" type="button" data-gender="male">Homem</button>
+                    <button class="segment" type="button" data-gender="female">Mulher</button>
                   </div>
                 </fieldset>
 
                 <div class="form-grid">
-                  <label>
-                    Idade
-                    <input id="ageInput" type="number" min="13" max="100" step="1" />
-                  </label>
-                  <label>
-                    Peso
-                    <span class="input-wrapper">
-                      <input id="weightInput" type="text" inputmode="decimal" />
-                      <small>kg</small>
-                    </span>
-                  </label>
-                  <label>
-                    Altura
-                    <span class="input-wrapper">
-                      <input id="heightInput" type="text" inputmode="decimal" />
-                      <small>cm</small>
-                    </span>
-                  </label>
+                  <label>Idade<input id="ageInput" type="number" min="13" max="100" step="1" /></label>
+                  <label>Peso<span class="input-wrapper"><input id="weightInput" type="text" inputmode="decimal" /><small>kg</small></span></label>
+                  <label>Altura<span class="input-wrapper"><input id="heightInput" type="text" inputmode="decimal" /><small>cm</small></span></label>
                 </div>
 
-                <label>
-                  Nível de atividade
-                  <select id="activitySelect"></select>
-                </label>
+                <label>Nível de atividade<select id="activitySelect"></select></label>
 
                 <fieldset>
                   <legend>Objetivo calórico</legend>
@@ -135,23 +104,30 @@
               </div>
               <p id="potentialText"></p>
               <div class="potential-grid">
-                <div>
-                  <strong id="potentialFive">0 kg</strong>
-                  <span>~5% gordura</span>
-                </div>
-                <div>
-                  <strong id="potentialTen">0 kg</strong>
-                  <span>10% gordura</span>
-                </div>
-                <div>
-                  <strong id="potentialFifteen">0 kg</strong>
-                  <span>15% gordura</span>
-                </div>
+                <div><strong id="potentialFive">0 kg</strong><span>~5% gordura</span></div>
+                <div><strong id="potentialTen">0 kg</strong><span>10% gordura</span></div>
+                <div><strong id="potentialFifteen">0 kg</strong><span>15% gordura</span></div>
               </div>
               <small id="potentialNote"></small>
             </article>
 
-            <article class="card macro-section">
+            <article class="card weight-tracking-card">
+              <div class="card-header">
+                <div>
+                  <p class="eyebrow">Registo de Composição</p>
+                  <h3>Progressão Corporal</h3>
+                </div>
+                <span class="pill green">Evolução</span>
+              </div>
+              <div class="weight-inline-form">
+                <input id="weightLogDate" type="date" />
+                <input id="weightLogValue" type="number" step="0.1" placeholder="Ex: 85.5" style="width:100px;" />
+                <button id="addWeightLogButton" class="secondary-button" type="button" style="padding:4px 12px;">Gravar</button>
+              </div>
+              <div class="chart-box"><canvas id="weightProgressChart" style="max-height: 180px; width: 100%;"></canvas></div>
+            </article>
+
+            <article class="card macro-section" style="grid-column: 1 / -1;">
               <div class="card-header">
                 <div>
                   <p class="eyebrow">Macronutrientes</p>
@@ -163,9 +139,7 @@
               <div class="macro-tabs" id="macroGoalTabs"></div>
               <p class="macro-explanation" id="macroExplanation"></p>
               <div class="macro-plan-grid" id="macroPlanGrid"></div>
-              <p class="macro-footnote">
-                Proteína e hidratos têm 4 kcal por grama; gordura tem 9 kcal por grama.
-              </p>
+              <p class="macro-footnote">Proteína e hidratos têm 4 kcal por grama; gordura tem 9 kcal por grama.</p>
             </article>
           </div>
         </section>
@@ -176,9 +150,7 @@
               <p class="eyebrow">Diário MyFitnessPal-style</p>
               <h2 id="diaryTitle">Hoje, em calorias, macros e euros</h2>
             </div>
-            <button class="secondary-button" id="clearDiaryButton" type="button">
-              Limpar diário
-            </button>
+            <button class="secondary-button" id="clearDiaryButton" type="button">Limpar diário</button>
           </div>
 
           <div class="dashboard-grid">
@@ -187,11 +159,7 @@
                 <div>
                   <p class="eyebrow">Contador de calorias</p>
                   <h3>
-                    <span id="goalCalories">0</span>
-                    <span>-</span>
-                    <span id="consumedCalories">0</span>
-                    <span>=</span>
-                    <span id="remainingCalories">0</span>
+                    <span id="goalCalories">0</span><span>-</span><span id="consumedCalories">0</span><span>=</span><span id="remainingCalories">0</span>
                   </h3>
                 </div>
                 <span class="pill green" id="remainingStatus">Restantes</span>
@@ -200,8 +168,7 @@
                 <div class="progress-bar" id="calorieProgress"></div>
               </div>
               <div class="progress-meta">
-                <span>Objetivo</span>
-                <strong id="progressPercent">0%</strong>
+                <span>Objetivo</span><strong id="progressPercent">0%</strong>
               </div>
             </article>
 
@@ -215,34 +182,42 @@
             </article>
           </div>
 
-          <article class="card diary-macro-card">
+          <div class="content-grid" style="grid-template-columns: 1fr 220px; gap:16px; margin-bottom: 22px;">
+            <article class="card diary-macro-card" style="margin: 0; height: 100%;">
+              <div class="card-header">
+                <div>
+                  <p class="eyebrow">Macros do dia</p>
+                  <h3 id="diaryMacroTitle">Objetivo de macronutrientes</h3>
+                </div>
+                <span class="pill" id="diaryMacroPlan">Plano escolhido</span>
+              </div>
+              <div class="diary-macro-grid" id="diaryMacroGrid"></div>
+            </article>
+            <article class="card" style="display:flex; justify-content:center; align-items:center; height: 100%;">
+              <canvas id="macroDonutChart" style="max-height:160px; max-width:160px;"></canvas>
+            </article>
+          </div>
+
+          <article class="card spending-card" style="margin-bottom: 22px;">
             <div class="card-header">
               <div>
-                <p class="eyebrow">Macros do dia</p>
-                <h3 id="diaryMacroTitle">Objetivo de macronutrientes</h3>
+                <p class="eyebrow">Histórico financeiro</p>
+                <h3>Evolução de Gastos</h3>
               </div>
-              <span class="pill" id="diaryMacroPlan">Plano escolhido</span>
+              <span class="pill">Por dia</span>
             </div>
-            <div class="diary-macro-grid" id="diaryMacroGrid"></div>
+            <div class="chart-box"><canvas id="spendingChart" style="max-height: 220px; width: 100%;"></canvas></div>
           </article>
 
           <div class="meal-grid" id="mealGrid"></div>
 
-          <button class="floating-action-button" id="quickAddButton" type="button">
-            + Adicionar
-          </button>
+          <button class="floating-action-button" id="quickAddButton" type="button">+ Adicionar</button>
         </section>
       </main>
 
       <nav class="bottom-nav" aria-label="Navegação principal">
-        <button class="nav-item active" type="button" data-view="profileView">
-          <span aria-hidden="true">👤</span>
-          Perfil TDEE
-        </button>
-        <button class="nav-item" type="button" data-view="diaryView">
-          <span aria-hidden="true">🍽️</span>
-          Diário
-        </button>
+        <button class="nav-item active" type="button" data-view="profileView"><span aria-hidden="true">👤</span>Perfil TDEE</button>
+        <button class="nav-item" type="button" data-view="diaryView"><span aria-hidden="true">🍽️</span>Diário</button>
       </nav>
     </div>
 
@@ -250,12 +225,18 @@
       <section class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
         <div class="modal-header">
           <div>
-            <p class="eyebrow">Código de barras / entrada manual</p>
+            <p class="eyebrow">Código de barras / entrada manual / TCA Local</p>
             <h2 id="modalTitle">Adicionar alimento</h2>
           </div>
-          <button class="icon-button" id="closeModalButton" type="button" aria-label="Fechar">
-            ✕
-          </button>
+          <button class="icon-button" id="closeModalButton" type="button" aria-label="Fechar">✕</button>
+        </div>
+
+        <div class="search-panel" style="margin-top: 10px; border-bottom: 1px dashed var(--border); padding-bottom: 15px;">
+            <label style="font-weight: 800;">
+                Pesquisar Alimento (Por Nome)
+                <input id="foodSearchInput" type="text" placeholder="Ex: Frango, Aveia, Arroz..." autocomplete="off" />
+            </label>
+            <ul id="searchResults" class="search-results"></ul>
         </div>
 
         <div class="scanner-panel">
@@ -265,107 +246,42 @@
           </div>
           <div>
             <strong>Leitor de código de barras</strong>
-            <p id="scannerStatus">
-              Usa a câmara quando o browser suportar BarcodeDetector, ou pesquisa o EAN manualmente.
-            </p>
+            <p id="scannerStatus">Usa a câmara ou pesquisa o EAN manualmente.</p>
             <div class="scanner-actions">
-              <button class="secondary-button" id="startCameraButton" type="button">
-                Scan com câmara
-              </button>
-              <button class="secondary-button" id="sampleProductButton" type="button">
-                Exemplo PT
-              </button>
-              <button class="text-button" id="stopCameraButton" type="button" hidden>
-                Parar câmara
-              </button>
+              <button class="secondary-button" id="startCameraButton" type="button">Scan com câmara</button>
+              <button class="text-button" id="stopCameraButton" type="button" hidden>Parar câmara</button>
             </div>
           </div>
         </div>
-        <div class="search-panel">
-            <label>
-                Pesquisar Alimento
-                <input id="foodSearchInput" type="text" placeholder="Ex: Carne de vaca, Aveia..." autocomplete="off" />
-            </label>
-              <ul id="searchResults" class="search-results"></ul>
-        </div>
+        
         <div class="barcode-lookup">
-          <label>
-            Código de barras
-            <input id="barcodeInput" type="text" inputmode="numeric" placeholder="Ex.: 5601234567890" />
-          </label>
-          <button class="secondary-button" id="lookupBarcodeButton" type="button">
-            Pesquisar na Open Food Facts
-          </button>
+          <label>Código de barras<input id="barcodeInput" type="text" inputmode="numeric" placeholder="Ex.: 5601234567890" /></label>
+          <button class="secondary-button" id="lookupBarcodeButton" type="button">Pesquisar na Open Food Facts</button>
         </div>
 
         <form id="itemForm" class="item-form" autocomplete="off">
-          <label>
-            Nome do alimento
-            <input id="itemNameInput" type="text" required placeholder="Ex.: Peito de frango" />
-          </label>
+          <label>Nome do alimento<input id="itemNameInput" type="text" required placeholder="Ex.: Peito de frango" /></label>
 
           <div class="form-grid">
-            <label>
-              Quantidade
-              <span class="input-wrapper">
-                <input id="itemQuantityInput" type="text" inputmode="decimal" placeholder="100" />
-                <small>g/ml</small>
-              </span>
-            </label>
-            <label>
-              Calorias
-              <span class="input-wrapper">
-                <input id="itemCaloriesInput" type="number" min="0" step="1" required />
-                <small>kcal</small>
-              </span>
-            </label>
-            <label>
-              Preço pago
-              <span class="input-wrapper">
-                <input id="itemPriceInput" type="text" inputmode="decimal" placeholder="0,00" />
-                <small>€</small>
-              </span>
-            </label>
+            <label>Quantidade<span class="input-wrapper"><input id="itemQuantityInput" type="text" inputmode="decimal" placeholder="100" /><small>g/ml</small></span></label>
+            <label>Calorias<span class="input-wrapper"><input id="itemCaloriesInput" type="number" min="0" step="1" required /><small>kcal</small></span></label>
+            <label>Preço pago<span class="input-wrapper"><input id="itemPriceInput" type="text" inputmode="decimal" placeholder="0,00" /><small>€</small></span></label>
           </div>
 
           <div class="nutrient-grid">
-            <label>
-              Proteína
-              <span class="input-wrapper">
-                <input id="itemProteinInput" type="text" inputmode="decimal" placeholder="0" />
-                <small>g</small>
-              </span>
-            </label>
-            <label>
-              Gordura
-              <span class="input-wrapper">
-                <input id="itemFatInput" type="text" inputmode="decimal" placeholder="0" />
-                <small>g</small>
-              </span>
-            </label>
-            <label>
-              Hidratos
-              <span class="input-wrapper">
-                <input id="itemCarbsInput" type="text" inputmode="decimal" placeholder="0" />
-                <small>g</small>
-              </span>
-            </label>
+            <label>Proteína<span class="input-wrapper"><input id="itemProteinInput" type="text" inputmode="decimal" placeholder="0" /><small>g</small></span></label>
+            <label>Gordura<span class="input-wrapper"><input id="itemFatInput" type="text" inputmode="decimal" placeholder="0" /><small>g</small></span></label>
+            <label>Hidratos<span class="input-wrapper"><input id="itemCarbsInput" type="text" inputmode="decimal" placeholder="0" /><small>g</small></span></label>
           </div>
 
-          <label>
-            Refeição
-            <select id="itemMealSelect"></select>
-          </label>
-
-          <button class="primary-button full-width" type="submit">
-            Guardar alimento
-          </button>
+          <label>Refeição<select id="itemMealSelect"></select></label>
+          <button class="primary-button full-width" type="submit">Guardar alimento</button>
         </form>
       </section>
     </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-    <script src="app.js"></script>
+    <script type="module" src="./js/main.js"></script>
   </body>
 </html>

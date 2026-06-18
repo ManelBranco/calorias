@@ -1138,3 +1138,57 @@ select:focus {
     border-radius: 18px;
   }
 }
+/* --- NOVOS ESTILOS PARA PESQUISA E GRÁFICOS --- */
+.chart-box {
+  background: var(--surface);
+  padding: 16px;
+  border-radius: var(--radius-small);
+  border: 1px solid var(--border);
+  margin-top: 16px;
+}
+
+.weight-inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 0 0;
+}
+
+.weight-inline-form input {
+  padding: 8px 12px;
+  min-height: 40px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-small);
+  font-size: 0.9rem;
+}
+
+.search-result-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.source-tag {
+  font-size: 0.75rem;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: var(--border);
+  color: var(--text);
+  font-weight: 800;
+}
+
+.source-tag.insa {
+  background: rgba(16, 67, 175, 0.1);
+  color: var(--primary);
+}
+
+.source-tag.off {
+  background: rgba(255, 143, 0, 0.1);
+  color: var(--amber);
+}
+
+@media (max-width: 860px) {
+  .content-grid[style*="grid-template-columns: 1fr 220px"] {
+    grid-template-columns: 1fr !important;
+  }
+}
