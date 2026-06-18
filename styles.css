@@ -850,6 +850,57 @@ select:focus {
   animation: popIn 180ms ease;
 }
 
+.search-panel {
+  margin-bottom: 18px;
+  position: relative;
+}
+
+.search-results {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-small);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  display: none;
+  position: absolute;
+  width: 100%;
+  z-index: 100;
+}
+
+.search-results.active {
+  display: block;
+}
+
+.search-result-item {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background var(--transition);
+}
+
+.search-result-item:last-child {
+  border-bottom: none;
+}
+
+.search-result-item:hover {
+  background: var(--surface-soft);
+}
+
+.search-result-item strong {
+  display: block;
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+.search-result-item small {
+  color: var(--primary);
+  font-weight: 800;
+}
+
 .scanner-panel {
   display: grid;
   grid-template-columns: 154px 1fr;

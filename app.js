@@ -222,6 +222,8 @@ const refs = {
   itemPriceInput: document.querySelector("#itemPriceInput"),
   itemMealSelect: document.querySelector("#itemMealSelect"),
   toast: document.querySelector("#toast"),
+  foodSearchInput: document.querySelector("#foodSearchInput"),
+  searchResults: document.querySelector("#searchResults"),
 };
 
 function loadScript(src) {
@@ -983,6 +985,65 @@ function escapeHtml(value) {
   return div.innerHTML;
 }
 
+// Debounce atrasa a execução para evitar chamadas à API em cada tecla pressionada
+function debounce(func, delay) {
+  let timeoutId;
+  return function (...args) {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => func.apply(this, args), delay);
+  };
+}
+
+async function handleTextSearch(event) {
+  const query = event.target.value.trim();
+  
+  if (query.length < 3) {
+    refs.searchResults.classList.remove('active');
+    refs.searchResults.innerHTML = '';
+    return;
+  }
+
+  refs.scannerStatus.textContent = "A pesquisar produtos...";
+
+  try {
+    // API de pesquisa da Open Food Facts
+    const endpoint = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=15&fields=${encodeURIComponent(OPEN_FOOD_FACTS_FIELDS)}`;
+    const response = await fetch(endpoint);
+    
+    if (!response.ok) throw new Error("Erro na resposta da API.");
+
+    const data = await response.json();
+    renderSearchResults(data.products || []);
+  } catch (error) {
+    refs.scannerStatus.textContent = "Erro ao pesquisar produtos.";
+    showToast("Erro na rede ao pesquisar.");
+  }
+}
+
+function renderSearchResults(products) {
+  if (products.length === 0) {
+    refs.searchResults.innerHTML = '<li class="search-result-item">Nenhum produto encontrado.</li>';
+    refs.searchResults.classList.add('active');
+    return;
+  }
+
+  refs.searchResults.innerHTML = products.map(product => {
+    const name = product.product_name || product.generic_name || "Produto desconhecido";
+    const brand = product.brands ? ` - ${product.brands}` : '';
+    const energy = readNutriment(product.nutriments, 'energy-kcal'); // Reutilizamos a tua função readNutriment
+    
+    // Guardamos o objeto JSON completo no atributo data do elemento
+    return `
+      <li class="search-result-item" data-product='${JSON.stringify(product).replace(/'/g, "&#39;")}'>
+        <strong>${escapeHtml(name)}${escapeHtml(brand)}</strong>
+        <small>${Math.round(energy)} kcal / 100g</small>
+      </li>
+    `;
+  }).join('');
+  
+  refs.searchResults.classList.add('active');
+}
+
 function bindEvents() {
   refs.themeToggle.addEventListener("click", toggleTheme);
   refs.resetProfileButton.addEventListener("click", resetProfile);
@@ -1065,6 +1126,22 @@ function bindEvents() {
     if (event.key === "Escape" && refs.modal.classList.contains("open")) {
       closeModal();
     }
+  });
+
+  refs.foodSearchInput.addEventListener('input', debounce(handleTextSearch, 500));
+
+  refs.searchResults.addEventListener('click', (event) => {
+    const item = event.target.closest('.search-result-item');
+    if (!item || !item.dataset.product) return;
+
+    const product = JSON.parse(item.dataset.product);
+    
+    // Aproveitamos a tua função que já preenche os dados!
+    fillProductFromOpenFoodFacts(product, product.code || "N/A");
+    
+    // Limpar o estado de pesquisa
+    refs.searchResults.classList.remove('active');
+    refs.foodSearchInput.value = "";
   });
 }
 
