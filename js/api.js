@@ -21,12 +21,41 @@ const LOCAL_TCA = [
   { name: "Banana", calories: 89, protein: 1.1, fat: 0.3, carbs: 23, source: "TCA INSA" }
 ];
 
+const REQUEST_TIMEOUT_MS = 10000;
+
+export function handleApiError(error) {
+  if (error?.name === "AbortError") return "Falha na rede: o pedido demorou demasiado tempo.";
+  if (error instanceof TypeError) return "Falha na rede. Verifica a tua ligação.";
+  if (error?.status) return "API indisponível. Tenta novamente mais tarde.";
+  return "Ocorreu um erro inesperado.";
+}
+
+async function fetchWithTimeout(url, timeoutMs = REQUEST_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    if (!response.ok) {
+      const error = new Error("Resposta inválida da API.");
+      error.status = response.status;
+      throw error;
+    }
+    return await response.json();
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+function isValidNutriments(nutriments) {
+  return nutriments && typeof nutriments === "object";
+}
+
 export async function searchFoodCombined(query) {
   if (!query || query.trim().length < 2) return [];
   const cleanQuery = query.toLowerCase().trim();
 
   // 1. Pesquisa na Base Local (TCA)
-  const localMatches = LOCAL_TCA.filter(food => 
+  const localMatches = LOCAL_TCA.filter(food =>
     food.name.toLowerCase().includes(cleanQuery)
   ).map(item => ({ ...item, isLocal: true }));
 
@@ -34,17 +63,16 @@ export async function searchFoodCombined(query) {
   let apiMatches = [];
   try {
     const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(cleanQuery)}&search_simple=1&action=process&json=1&page_size=8&fields=${OPEN_FOOD_FACTS_FIELDS}`;
-    const response = await fetch(url);
-    const data = await response.json();
+    const data = await fetchWithTimeout(url);
 
-    if (data && data.products) {
+    if (data && Array.isArray(data.products)) {
       apiMatches = data.products
-        .filter(p => p.product_name && p.nutriments)
+        .filter(p => p && typeof p.product_name === "string" && isValidNutriments(p.nutriments))
         .map(p => {
           const nut = p.nutriments;
           return {
             name: p.product_name_pt || p.product_name || "Produto OFF",
-            calories: Math.round(nut['energy-kcal_100g'] || (nut['energy_100g'] / 4.184) || 0),
+            calories: Math.round(Number(nut["energy-kcal_100g"]) || (Number(nut["energy_100g"]) / 4.184) || 0),
             protein: Number(nut.proteins_100g || 0),
             fat: Number(nut.fat_100g || 0),
             carbs: Number(nut.carbohydrates_100g || 0),
@@ -54,7 +82,7 @@ export async function searchFoodCombined(query) {
         });
     }
   } catch (err) {
-    console.warn("Falha ao ligar à API do OFF.", err);
+    console.warn(handleApiError(err), err);
   }
 
   // Devolve TCA primeiro, depois OFF
@@ -64,11 +92,9 @@ export async function searchFoodCombined(query) {
 export async function fetchProductByEan(barcode) {
   if (!barcode) return null;
   const url = `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(barcode)}.json?fields=${OPEN_FOOD_FACTS_FIELDS}`;
-  const response = await fetch(url);
-  if (!response.ok) throw new Error("Resposta inválida da API.");
-  const data = await response.json();
-  
-  if (data.status === 1 && data.product) {
+  const data = await fetchWithTimeout(url);
+
+  if (data?.status === 1 && data.product && isValidNutriments(data.product.nutriments)) {
     return data.product;
   }
   return null;
