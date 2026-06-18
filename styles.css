@@ -898,14 +898,6 @@ select:focus {
   object-fit: cover;
 }
 
-#barcodeVideo {
-  display: block !important;
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover !important;
-  background: #000;
-}
-
 .scanner-frame.scanning video {
   display: block;
 }
