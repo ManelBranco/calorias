@@ -892,15 +892,20 @@ select:focus {
 .scanner-frame video {
   position: absolute;
   inset: 0;
-  display: none;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  /* Em vez de display: none, usamos opacidade para o Safari não congelar o stream */
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease;
 }
 
 .scanner-frame.scanning video {
-  display: block;
+  opacity: 1;
+  visibility: visible;
 }
+
 
 .scanner-frame span {
   position: absolute;

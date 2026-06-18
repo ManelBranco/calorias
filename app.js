@@ -718,58 +718,59 @@ async function startBarcodeScanner() {
         video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } },
         audio: false
       });
+      
+      // Configurações críticas para iOS
+      refs.barcodeVideo.setAttribute('playsinline', true);
+      refs.barcodeVideo.muted = true;
+      
       refs.barcodeVideo.srcObject = scannerStream;
       await refs.barcodeVideo.play();
       refs.scannerFrame.classList.add('scanning');
       refs.stopCameraButton.hidden = false;
       refs.startCameraButton.disabled = true;
       refs.scannerStatus.textContent = 'Aponta a câmara para o código de barras.';
-      scanBarcodeFrame(); // inicia o loop com requestAnimationFrame
+      scanBarcodeFrame(); 
       return;
     } catch (error) {
       console.warn('BarcodeDetector falhou, a usar fallback ZXing.', error);
-      // Se falhar (ex: permissão negada), continua para o fallback
     }
   }
 
-  // --- Fallback com ZXing (funciona em qualquer browser com getUserMedia) ---
+  // --- Fallback com ZXing (Otimizado para iOS / iPhone) ---
   try {
-    // Carregar a biblioteca ZXing se ainda não estiver disponível
     if (typeof ZXing === 'undefined') {
-      await loadScript('https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js');
-      await loadScript('https://unpkg.com/@zxing/browser@0.1.0/umd/index.min.js');
+      await loadScript('https://unpkg.com');
+      await loadScript('https://unpkg.com');
     }
 
-    const video = refs.barcodeVideo;
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } },
-      audio: false
-    });
-    video.srcObject = stream;
-    await video.play();
+    // Forçar atributos vitais diretamente no elemento HTML antes de ligar a câmara
+    refs.barcodeVideo.setAttribute('playsinline', 'true');
+    refs.barcodeVideo.setAttribute('muted', 'true');
+    refs.barcodeVideo.muted = true;
+    refs.barcodeVideo.playsInline = true;
+
     refs.scannerFrame.classList.add('scanning');
     refs.stopCameraButton.hidden = false;
     refs.startCameraButton.disabled = true;
     refs.scannerStatus.textContent = 'Scanner ZXing ativo – aponta para o código.';
 
-    // Criar o leitor ZXing
+    // Instanciar o leitor correto da API do ZXing
     const reader = new ZXing.BrowserMultiFormatReader();
-    reader.decodeFromVideoElement(video, (result, error) => {
+    window.__zxingReader = reader;
+
+    // Usar decodeFromVideoDevice com 'undefined' para escolher a câmara traseira automaticamente
+    await reader.decodeFromVideoDevice(undefined, refs.barcodeVideo, (result, error) => {
       if (result) {
         const barcode = result.getText();
         if (barcode) {
           navigator.vibrate?.(60);
           refs.barcodeInput.value = barcode;
           refs.scannerStatus.textContent = `Código detetado: ${barcode}`;
-          stopBarcodeScanner(); // para a câmara e o leitor
+          stopBarcodeScanner(); 
           lookupBarcode(barcode);
         }
       }
-      // Ignoramos erros (são normais enquanto não há código)
     });
-
-    // Guardar referência para conseguir parar depois
-    window.__zxingReader = reader;
 
   } catch (error) {
     refs.scannerStatus.textContent = 'Não foi possível aceder à câmara. Usa a entrada manual.';
@@ -777,6 +778,7 @@ async function startBarcodeScanner() {
     console.error(error);
   }
 }
+
 
 async function scanBarcodeFrame() {
   if (!scannerStream || !barcodeDetector) {
