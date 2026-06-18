@@ -6,9 +6,8 @@
     <meta name="description" content="Webapp em PT-PT para calcular TDEE, acompanhar macronutrientes, calorias diárias e gastos em alimentação." />
     <title>Calorias & Orçamento</title>
     <link rel="stylesheet" href="styles.css" />
-    <script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
-    <script src="https://unpkg.com/@zxing/browser@0.1.0/umd/index.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
   </head>
   <body>
     <div class="app-shell">
@@ -124,7 +123,18 @@
                 <input id="weightLogValue" type="number" step="0.1" placeholder="Ex: 85.5" style="width:100px;" />
                 <button id="addWeightLogButton" class="secondary-button" type="button" style="padding:4px 12px;">Gravar</button>
               </div>
-              <div class="chart-box"><canvas id="weightProgressChart" style="max-height: 180px; width: 100%;"></canvas></div>
+              <div class="chart-box"><canvas id="weightProgressChart" style="max-height: 180px; width: 100%;" aria-label="Gráfico de evolução de peso" role="img"></canvas></div>
+            </article>
+
+            <article class="card spending-card" style="grid-column: 1 / -1;">
+              <div class="card-header">
+                <div>
+                  <p class="eyebrow">Histórico financeiro</p>
+                  <h3>Evolução de Gastos</h3>
+                </div>
+                <span class="pill">Por dia</span>
+              </div>
+              <div class="chart-box"><canvas id="spendingChart" style="max-height: 220px; width: 100%;" aria-label="Gráfico de evolução de gastos" role="img"></canvas></div>
             </article>
 
             <article class="card macro-section" style="grid-column: 1 / -1;">
@@ -182,7 +192,10 @@
             </article>
           </div>
 
-          <div class="content-grid" style="grid-template-columns: 1fr 220px; gap:16px; margin-bottom: 22px;">
+          <div class="content-grid diary-macro-layout">
+            <article class="card" style="display:flex; justify-content:center; align-items:center; height: 100%;">
+              <canvas id="macroDonutChart" width="220" height="220" style="width:220px; height:220px;" aria-label="Gráfico de distribuição de macronutrientes" role="img"></canvas>
+            </article>
             <article class="card diary-macro-card" style="margin: 0; height: 100%;">
               <div class="card-header">
                 <div>
@@ -193,21 +206,7 @@
               </div>
               <div class="diary-macro-grid" id="diaryMacroGrid"></div>
             </article>
-            <article class="card" style="display:flex; justify-content:center; align-items:center; height: 100%;">
-              <canvas id="macroDonutChart" style="max-height:160px; max-width:160px;"></canvas>
-            </article>
           </div>
-
-          <article class="card spending-card" style="margin-bottom: 22px;">
-            <div class="card-header">
-              <div>
-                <p class="eyebrow">Histórico financeiro</p>
-                <h3>Evolução de Gastos</h3>
-              </div>
-              <span class="pill">Por dia</span>
-            </div>
-            <div class="chart-box"><canvas id="spendingChart" style="max-height: 220px; width: 100%;"></canvas></div>
-          </article>
 
           <div class="meal-grid" id="mealGrid"></div>
 

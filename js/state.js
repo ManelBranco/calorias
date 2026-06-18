@@ -1,3 +1,5 @@
+import { debounce, readJSON, writeJSON } from "./storage.js";
+
 export const ACTIVITY_LEVELS = {
   sedentary: { label: "Sedentário", description: "Pouco ou nenhum exercício", multiplier: 1.2 },
   light: { label: "Ligeiramente ativo", description: "Exercício leve 1–3 dias/semana", multiplier: 1.375 },
@@ -35,6 +37,21 @@ export let state = {
   theme: "light",
 };
 
+const listeners = [];
+export function onChange(listener) {
+  listeners.push(listener);
+}
+function notify() {
+  listeners.forEach(listener => listener(state));
+}
+
+const persistDebounced = debounce(() => writeJSON(STORAGE_KEY, state), 300);
+function commit(nextState) {
+  state = nextState;
+  persistDebounced();
+  notify();
+}
+
 export const createId = () => globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 // Converte qualquer valor para um número finito; devolve o fallback (0) para undefined, "", texto inválido ou NaN.
@@ -43,37 +60,91 @@ export function toSafeNumber(value, fallback = 0) {
   return Number.isFinite(num) ? num : fallback;
 }
 
-export function loadState() {
-  const fallbackTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-  try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if (saved) {
-      state.profile = { ...DEFAULT_PROFILE, ...saved.profile };
-      state.items = (saved.items || []).map(normalizeItem);
-      state.weightHistory = saved.weightHistory || [];
-      state.theme = saved.theme || fallbackTheme;
-    }
-  } catch {
-    localStorage.removeItem(STORAGE_KEY);
-  }
+function validateProfile(raw) {
+  const p = raw && typeof raw === "object" ? raw : {};
+  const age = toSafeNumber(p.age, DEFAULT_PROFILE.age);
+  const weight = toSafeNumber(p.weight, DEFAULT_PROFILE.weight);
+  const height = toSafeNumber(p.height, DEFAULT_PROFILE.height);
+  return {
+    gender: p.gender === "female" ? "female" : "male",
+    age: age > 0 ? age : DEFAULT_PROFILE.age,
+    weight: weight > 0 ? weight : DEFAULT_PROFILE.weight,
+    height: height > 0 ? height : DEFAULT_PROFILE.height,
+    activity: ACTIVITY_LEVELS[p.activity] ? p.activity : DEFAULT_PROFILE.activity,
+    goal: GOALS[p.goal] ? p.goal : DEFAULT_PROFILE.goal,
+    macroPlan: MACRO_PLANS[p.macroPlan] ? p.macroPlan : DEFAULT_PROFILE.macroPlan,
+  };
 }
 
-export function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+function validateWeightHistory(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter(entry => entry && typeof entry.date === "string" && Number.isFinite(Number(entry.weight)))
+    .map(entry => ({ date: entry.date, weight: Number(entry.weight) }));
 }
 
 export function normalizeItem(item) {
+  const source = item && typeof item === "object" ? item : {};
   return {
-    id: item.id || createId(),
-    name: item.name || "Alimento",
-    calories: toSafeNumber(item.calories),
-    protein: toSafeNumber(item.protein),
-    fat: toSafeNumber(item.fat),
-    carbs: toSafeNumber(item.carbs),
-    price: toSafeNumber(item.price),
-    quantity: toSafeNumber(item.quantity),
-    barcode: item.barcode || "",
-    date: item.date || new Date().toISOString(), // Garante sempre uma data ISO, mesmo em itens antigos sem este campo
-    meal: item.meal && MEALS[item.meal] ? item.meal : "snacks", // Fix aqui
+    id: source.id || createId(),
+    name: typeof source.name === "string" && source.name.trim() ? source.name.trim() : "Alimento",
+    calories: toSafeNumber(source.calories),
+    protein: toSafeNumber(source.protein),
+    fat: toSafeNumber(source.fat),
+    carbs: toSafeNumber(source.carbs),
+    price: toSafeNumber(source.price),
+    quantity: toSafeNumber(source.quantity),
+    barcode: typeof source.barcode === "string" ? source.barcode : "",
+    date: typeof source.date === "string" ? source.date : new Date().toISOString(),
+    meal: source.meal && MEALS[source.meal] ? source.meal : "snacks",
   };
+}
+
+export function loadState() {
+  const fallbackTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  const saved = readJSON(STORAGE_KEY);
+  if (saved && typeof saved === "object") {
+    state = {
+      profile: validateProfile(saved.profile),
+      items: Array.isArray(saved.items) ? saved.items.map(normalizeItem) : [],
+      weightHistory: validateWeightHistory(saved.weightHistory),
+      theme: saved.theme === "dark" || saved.theme === "light" ? saved.theme : fallbackTheme,
+    };
+  } else {
+    state = { profile: { ...DEFAULT_PROFILE }, items: [], weightHistory: [], theme: fallbackTheme };
+  }
+}
+
+export function setProfileField(key, value) {
+  commit({ ...state, profile: { ...state.profile, [key]: value } });
+}
+
+export function resetProfile() {
+  commit({ ...state, profile: { ...DEFAULT_PROFILE } });
+}
+
+export function setTheme(theme) {
+  commit({ ...state, theme });
+}
+
+export function addItem(itemData) {
+  commit({ ...state, items: [...state.items, normalizeItem(itemData)] });
+}
+
+export function updateItem(id, itemData) {
+  commit({ ...state, items: state.items.map(i => (i.id === id ? normalizeItem({ ...itemData, id }) : i)) });
+}
+
+export function removeItem(id) {
+  commit({ ...state, items: state.items.filter(i => i.id !== id) });
+}
+
+export function clearItems() {
+  commit({ ...state, items: [] });
+}
+
+export function addWeightEntry(entry) {
+  const filtered = state.weightHistory.filter(e => e.date !== entry.date);
+  const next = [...filtered, entry].sort((a, b) => new Date(a.date) - new Date(b.date));
+  commit({ ...state, weightHistory: next });
 }
