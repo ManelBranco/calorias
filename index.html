@@ -214,17 +214,23 @@
         </section>
 
         <section class="view" id="diaryView" aria-labelledby="diaryTitle">
-            <div class="diary-heading" style="display: grid; gap: 16px;">
+          <div class="diary-heading" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
             <p class="eyebrow" style="margin: 0;">Diário MyFitnessPal-style</p>
   
-            <div class="date-navigator" style="display: flex; align-items: center; justify-content: space-between; background: var(--surface-soft); padding: 8px; border-radius: var(--radius-small); border: 1px solid var(--border);">
-            <button class="icon-button" id="prevDayBtn" type="button" style="width: 36px; height: 36px;">◀</button>
-            <h2 id="diaryTitle" style="margin: 0; font-size: 1.3rem; text-align: center; flex: 1;">Hoje</h2>
-            <button class="icon-button" id="nextDayBtn" type="button" style="width: 36px; height: 36px;">▶</button>
-          </div>
+            <div class="diary-controls" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; width: 100%; box-sizing: border-box;">
+              
+              <div class="date-navigator" style="display: flex; align-items: center; justify-content: space-between; background: var(--surface-soft); padding: 6px 12px; border-radius: var(--radius-small); border: 1px solid var(--border); box-sizing: border-box; min-height: 48px;">
+                <button class="icon-button" id="prevDayBtn" type="button" style="width: 36px; height: 36px; flex-shrink: 0; cursor: pointer;">◀</button>
+                <h2 id="diaryTitle" style="margin: 0; font-size: 1.15rem; text-align: center; flex: 1; padding: 0 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Hoje</h2>
+                <button class="icon-button" id="nextDayBtn" type="button" style="width: 36px; height: 36px; flex-shrink: 0; cursor: pointer;">▶</button>
+              </div>
 
-  <button class="secondary-button" id="clearDiaryButton" type="button">Limpar diário deste dia</button>
-</div>
+              <button class="secondary-button" id="clearDiaryButton" type="button" style="width: 100%; min-height: 48px; margin: 0; padding: 8px 16px; box-sizing: border-box; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.95rem;">
+                Limpar diário deste dia
+              </button>
+              
+            </div>
+          </div>
           <div class="dashboard-grid">
             <article class="card calorie-card">
               <div class="card-header">

@@ -79,6 +79,45 @@ button {
   gap: 16px;
 }
 
+/* 1. Garante que o contentor que envolve estes botões é flexível e quebra linhas em ecrãs pequenos */
+.diary-actions, 
+.diary-controls, 
+.diary-header { /* Substitui pelo nome da classe do contentor onde os teus botões estão inseridos */
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap; /* Permite que os botões passem para baixo se não couberem lado a lado */
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* 2. Força os botões a serem fluidos e a ocuparem o espaço disponível proporcionalmente */
+#dateSelectorButton, 
+#clearDiaryButton,
+.btn-date, 
+.btn-clear { /* Adiciona aqui os IDs ou classes exatas dos teus dois botões */
+  flex: 1 1 180px;  /* Cresce e encolhe dinamicamente. Inicia a quebra se o ecrã for menor que ~180px */
+  width: 100%;      /* Garante fluidez total */
+  min-width: 0;     /* Remove restrições nativas do browser */
+  max-width: 100%;
+  text-align: center;
+  white-space: nowrap; /* Evita que o texto do botão quebre em duas linhas esquisitas */
+}
+
+/* 3. Ajuste específico para ecrãs de telemóveis (Mobile) */
+@media (max-width: 480px) {
+  /* Se preferires que em telemóveis fiquem logo um por baixo do outro ocupando 100% da largura */
+  .diary-actions, 
+  .diary-controls {
+    flex-direction: column;
+  }
+  
+  /* Remove qualquer margem ou largura fixa residual que possa estar a estragar o layout */
+  #dateSelectorButton, 
+  #clearDiaryButton {
+    width: 100% !important;
+  }
+}
+
 .app-header {
   margin-bottom: 28px;
 }
