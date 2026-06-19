@@ -132,6 +132,20 @@ async function lookupBarcode(raw) {
     const nut = product.nutriments || {};
     document.querySelector("#itemNameInput").value = product.product_name || "Produto OFF";
     document.querySelector("#itemQuantityInput").value = "100";
+    
+    // --- NOVO: Preenche a Quantidade da Embalagem ---
+    if (product.product_quantity) {
+      document.querySelector("#packageQuantityInput").value = decimalToInput(Number(product.product_quantity));
+    } else if (product.quantity) {
+      const parsedQty = parseFloat(product.quantity);
+      if (!isNaN(parsedQty)) {
+        document.querySelector("#packageQuantityInput").value = decimalToInput(parsedQty);
+      }
+    } else {
+      document.querySelector("#packageQuantityInput").value = "";
+    }
+    // ------------------------------------------------
+    
     currentProductPer100g = {
       calories: Number(nut["energy-kcal_100g"] || 0),
       protein: Number(nut.proteins_100g || 0),
@@ -139,6 +153,10 @@ async function lookupBarcode(raw) {
       carbs: Number(nut.carbohydrates_100g || 0),
     };
     updateItemNutritionFromProduct();
+
+    // --- NOVO: Atualiza o preço calculado caso o user já tenha posto o preço total da embalagem antes ---
+    updateCalculatedPrice();
+
     showToast("Macros preenchidos.");
     statusEl.textContent = "Encontrado!";
   } catch (err) {
@@ -179,8 +197,18 @@ function renderSearchResults(results) {
     li.addEventListener("click", () => {
       document.querySelector("#itemNameInput").value = food.name;
       document.querySelector("#itemQuantityInput").value = "100";
+      
+      // --- NOVO: Preenche a Quantidade da Embalagem vinda da pesquisa ---
+      if (food.packageQuantity) {
+        document.querySelector("#packageQuantityInput").value = decimalToInput(food.packageQuantity);
+      } else {
+        document.querySelector("#packageQuantityInput").value = "";
+      }
+      // -----------------------------------------------------------------
+
       currentProductPer100g = { calories: food.calories, protein: food.protein, fat: food.fat, carbs: food.carbs };
       updateItemNutritionFromProduct();
+      updateCalculatedPrice();
       resultList.classList.remove("active");
       document.querySelector("#foodSearchInput").value = "";
       showToast("Alimento selecionado.");

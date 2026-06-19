@@ -1,5 +1,5 @@
 export const OPEN_FOOD_FACTS_FIELDS = [
-  "product_name", "generic_name", "brands", "quantity", "serving_size", "nutriments", "nutrition_grades", "image_front_url"
+  "product_name", "generic_name", "brands", "quantity", "product_quantity", "serving_size", "nutriments", "nutrition_grades", "image_front_url"
 ].join(",");
 
 // Base de Dados Local - Valores de Referência (por 100g/100ml) Baseados no INSA
@@ -77,15 +77,16 @@ export async function searchFoodCombined(query) {
             fat: Number(nut.fat_100g || 0),
             carbs: Number(nut.carbohydrates_100g || 0),
             source: p.brands ? `OFF - ${p.brands}` : "Open Food Facts",
-            isLocal: false
+            isLocal: false,
+            // Guardamos o valor numérico ou tentamos extrair o parseFloat da string como fallback
+            packageQuantity: p.product_quantity ? Number(p.product_quantity) : (parseFloat(p.quantity) || null)
           };
         });
     }
   } catch (err) {
     console.warn(handleApiError(err), err);
   }
-
-  // Devolve TCA primeiro, depois OFF
+  // Combina resultados locais e da API, garantindo que os locais aparecem primeiro
   return [...localMatches, ...apiMatches];
 }
 
