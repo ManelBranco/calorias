@@ -1,4 +1,4 @@
-import { state, onChange, removeItem, clearItems, MEALS } from "./state.js";
+import { state, onChange, removeItem, clearItems, MEALS, setCurrentDate } from "./state.js"; // <-- setCurrentDate adicionado
 import { calculateProfile } from "./tdee.js";
 import { calculateMacroTargets, MACRO_COLORS } from "./macro.js";
 import { updateMacroDonut } from "./charts.js";
@@ -12,7 +12,10 @@ function buildFoodItemNode(item) {
 
   const info = document.createElement("div");
   const nameEl = document.createElement("strong");
-  nameEl.textContent = item.name;
+  // Se for favorito, adicionamos uma estrela visual
+  const isFav = state.favorites && state.favorites.some(f => f.name === item.name);
+  nameEl.textContent = isFav ? `⭐ ${item.name}` : item.name;
+  
   const calEl = document.createElement("span");
   calEl.textContent = formatCalories(item.calories);
   const macroEl = document.createElement("span");
@@ -29,11 +32,12 @@ function buildFoodItemNode(item) {
   return wrapper;
 }
 
-function renderMealGrid() {
+// Alterado para receber apenas os items do dia (dailyItems)
+function renderMealGrid(dailyItems) {
   const mealGrid = document.querySelector("#mealGrid");
   mealGrid.innerHTML = "";
   Object.entries(MEALS).forEach(([mealKey, label]) => {
-    const items = state.items.filter(i => i.meal === mealKey);
+    const items = dailyItems.filter(i => i.meal === mealKey);
     const sum = items.reduce((acc, i) => acc + i.calories, 0);
 
     const card = document.createElement("article");
@@ -103,9 +107,37 @@ function renderMacroGrid(totals, targets) {
   });
 }
 
+function updateDateDisplay() {
+  const todayDate = new Date();
+  const currentDate = new Date(state.currentDate);
+  
+  // Zera as horas para comparar apenas os dias
+  todayDate.setHours(0, 0, 0, 0);
+  currentDate.setHours(0, 0, 0, 0);
+  
+  const diffTime = currentDate.getTime() - todayDate.getTime();
+  const diffDays = Math.round(diffTime / (1000 * 3600 * 24));
+
+  let title = "";
+  if (diffDays === 0) title = "Hoje";
+  else if (diffDays === -1) title = "Ontem";
+  else if (diffDays === 1) title = "Amanhã";
+  else title = new Intl.DateTimeFormat("pt-PT", { day: "2-digit", month: "short", year: "numeric" }).format(currentDate);
+
+  document.querySelector("#diaryTitle").textContent = title;
+}
+
 function render() {
+  // A MÁQUINA DO TEMPO: Filtramos apenas os alimentos da data selecionada
+  const dailyItems = state.items.filter(i => {
+    const itemDate = String(i.date || new Date().toISOString()).split("T")[0];
+    return itemDate === state.currentDate;
+  });
+
+  updateDateDisplay();
+
   const profile = calculateProfile(state.profile);
-  const totals = state.items.reduce(
+  const totals = dailyItems.reduce(
     (acc, i) => ({
       calories: acc.calories + i.calories,
       protein: acc.protein + i.protein,
@@ -115,6 +147,7 @@ function render() {
     }),
     { calories: 0, protein: 0, fat: 0, carbs: 0, spent: 0 },
   );
+  
   const remaining = profile.dailyGoal - totals.calories;
   const progress = profile.dailyGoal > 0 ? Math.min((totals.calories / profile.dailyGoal) * 100, 100) : 0;
 
@@ -131,14 +164,29 @@ function render() {
   const targets = calculateMacroTargets(profile.dailyGoal, state.profile.macroPlan);
   renderMacroGrid(totals, targets);
   updateMacroDonut(totals.protein, totals.fat, totals.carbs);
-  renderMealGrid();
+  
+  // Passamos a lista filtrada para as refeições
+  renderMealGrid(dailyItems);
+}
+
+function changeDate(offsetDays) {
+  const current = new Date(state.currentDate);
+  current.setDate(current.getDate() + offsetDays);
+  setCurrentDate(current.toISOString().split("T")[0]);
 }
 
 function bindEvents() {
+  document.querySelector("#prevDayBtn").addEventListener("click", () => changeDate(-1));
+  document.querySelector("#nextDayBtn").addEventListener("click", () => changeDate(1));
+
   document.querySelector("#clearDiaryButton").addEventListener("click", () => {
-    if (window.confirm("Limpar o diário hoje?")) {
-      clearItems();
-      showToast("Diário limpo.");
+    if (window.confirm("Limpar os alimentos deste dia?")) {
+      // Em vez de limpar tudo, removemos só os do dia atual
+      state.items.forEach(i => {
+        const itemDate = String(i.date).split("T")[0];
+        if (itemDate === state.currentDate) removeItem(i.id);
+      });
+      showToast("Diário limpo para este dia.");
     }
   });
 

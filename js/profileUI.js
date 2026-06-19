@@ -3,6 +3,8 @@ import { calculateProfile, calculateMusclePotential } from "./tdee.js";
 import { calculateMacroTargets } from "./macro.js";
 import { updateSpendingChart, setSpendingRange } from "./charts.js";
 import { numberFormatter, formatCalories, parseDecimal } from "./utils.js";
+import { generateShoppingList } from "./calculations.js"; // Importar a função!
+import { currencyFormatter } from "./utils.js"; // Para formatar o dinheiro
 
 
 function renderSelectOptions() {
@@ -50,10 +52,73 @@ function renderProfileSummary() {
   }).join("");
 }
 
+function renderShoppingList() {
+  const container = document.querySelector("#shoppingListContainer");
+  if (!container) return;
+
+  /// Filtramos apenas os últimos 7 dias para fazer a previsão
+  const last7DaysDate = new Date();
+  last7DaysDate.setDate(last7DaysDate.getDate() - 7);
+  const recentItems = state.items.filter(item => new Date(item.date) >= last7DaysDate);
+
+  // IMPORTANTE: Agora passamos os "recentItems" E os "state.favorites"!
+  const list = generateShoppingList(recentItems, state.favorites);
+
+  if (!list || list.length === 0) {
+    container.innerHTML = "<p class='empty-state'>Ainda não consumiste alimentos suficientes para prever uma lista de compras.</p>";
+    return;
+  }
+
+  let totalCost = 0;
+  
+  // Construir a tabela em HTML
+  let html = `
+    <div style="overflow-x: auto;">
+      <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+        <thead>
+          <tr style="border-bottom: 1px solid var(--border);">
+            <th style="padding: 8px; color: var(--text-muted);">Alimento</th>
+            <th style="padding: 8px; color: var(--text-muted);">Qtd. Necessária</th>
+            <th style="padding: 8px; color: var(--text-muted);">Custo Estimado</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+
+list.forEach(item => {
+    // Evitamos mostrar alimentos em que não gastaste nada
+    if (item.weeklyCost > 0) {
+      totalCost += item.weeklyCost;
+      html += `
+        <tr style="border-bottom: 1px solid var(--surface-soft);">
+          <td style="padding: 10px 8px;"><strong>⭐ ${item.name}</strong></td>
+          <td style="padding: 10px 8px;">${Math.round(item.weeklyQuantity)}g/ml</td>
+          <td style="padding: 10px 8px;">${currencyFormatter.format(item.weeklyCost)}</td>
+        </tr>
+      `;
+    }
+  });
+
+  html += `
+        </tbody>
+        <tfoot>
+          <tr>
+            <th style="padding: 16px 8px 8px 8px; text-align: right;" colspan="2">Total Estimado para 7 dias:</th>
+            <th style="padding: 16px 8px 8px 8px; color: var(--primary); font-size: 1.1rem;">${currencyFormatter.format(totalCost)}</th>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  `;
+
+  container.innerHTML = html;
+}
+
 function render() {
   renderProfileForm();
   renderProfileSummary();
   updateSpendingChart(state.items);
+  renderShoppingList();
 }
 
 function bindEvents() {
@@ -90,3 +155,4 @@ export function init() {
   render();
   onChange(render);
 }
+

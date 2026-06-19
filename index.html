@@ -141,6 +141,16 @@
               <div class="chart-box"><canvas id="spendingChart" style="max-height: 220px; width: 100%;" aria-label="Gráfico de evolução de gastos" role="img"></canvas></div>
             </article>
 
+            <!-- Secção da Lista de Compras -->
+            <section class="card" style="margin-top: 24px;">
+            <header class="card-header">
+            <h3 style="margin: 0;">🛒 Lista de Compras (Próximos 7 dias)</h3>
+            </header>
+            <div id="shoppingListContainer" style="margin-top: 16px;">
+            <!-- A tabela será gerada aqui pelo JS -->
+            </div>
+            </section>
+
             <article class="card macro-section" style="grid-column: 1 / -1;">
               <div class="card-header">
                 <div>
@@ -159,14 +169,17 @@
         </section>
 
         <section class="view" id="diaryView" aria-labelledby="diaryTitle">
-          <div class="diary-heading">
-            <div>
-              <p class="eyebrow">Diário MyFitnessPal-style</p>
-              <h2 id="diaryTitle">Hoje, em calorias, macros e euros</h2>
-            </div>
-            <button class="secondary-button" id="clearDiaryButton" type="button">Limpar diário</button>
+            <div class="diary-heading" style="display: grid; gap: 16px;">
+            <p class="eyebrow" style="margin: 0;">Diário MyFitnessPal-style</p>
+  
+            <div class="date-navigator" style="display: flex; align-items: center; justify-content: space-between; background: var(--surface-soft); padding: 8px; border-radius: var(--radius-small); border: 1px solid var(--border);">
+            <button class="icon-button" id="prevDayBtn" type="button" style="width: 36px; height: 36px;">◀</button>
+            <h2 id="diaryTitle" style="margin: 0; font-size: 1.3rem; text-align: center; flex: 1;">Hoje</h2>
+            <button class="icon-button" id="nextDayBtn" type="button" style="width: 36px; height: 36px;">▶</button>
           </div>
 
+  <button class="secondary-button" id="clearDiaryButton" type="button">Limpar diário deste dia</button>
+</div>
           <div class="dashboard-grid">
             <article class="card calorie-card">
               <div class="card-header">
@@ -263,7 +276,17 @@
         </div>
 
         <form id="itemForm" class="item-form" autocomplete="off">
-          <label>Nome do alimento<input id="itemNameInput" type="text" required placeholder="Ex.: Peito de frango" /></label>
+
+            <div id="historyPanel" style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 8px;">
+          </div>
+            <div style="display: flex; gap: 12px; align-items: flex-end;">
+             <label style="flex: 1;">Nome do alimento
+            <input id="itemNameInput" type="text" required placeholder="Ex.: Peito de frango" />
+          </label>
+          <button id="favoriteToggleBtn" type="button" class="icon-button" style="width: 48px; height: 48px; font-size: 1.4rem;" aria-label="Marcar como favorito">
+          🤍
+        </button>
+         </div>
 
           <div class="form-grid">
             <label>Qtd. Embalagem<span class="input-wrapper"><input id="packageQuantityInput" type="text" inputmode="decimal" placeholder="Ex: 1000" /><small>g/ml</small></span></label>

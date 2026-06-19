@@ -34,6 +34,9 @@ export let state = {
   profile: { ...DEFAULT_PROFILE },
   items: [],
   weightHistory: [],
+  favorites: [], // NOVO: Guarda os alimentos favoritos 
+  history: [],   // NOVO: Guarda o histórico dos últimos alimentos adicionados 
+  currentDate: new Date().toISOString().split("T")[0], // NOVO: Máquina do Tempo 
   theme: "light",
 };
 
@@ -110,11 +113,36 @@ export function loadState() {
       profile: validateProfile(saved.profile),
       items: Array.isArray(saved.items) ? saved.items.map(normalizeItem) : [],
       weightHistory: validateWeightHistory(saved.weightHistory),
+      favorites: Array.isArray(saved.favorites) ? saved.favorites : [],
+      history: Array.isArray(saved.history) ? saved.history : [],
+      currentDate: saved.currentDate || new Date().toISOString().split("T")[0],
       theme: saved.theme === "dark" || saved.theme === "light" ? saved.theme : fallbackTheme,
     };
   } else {
-    state = { profile: { ...DEFAULT_PROFILE }, items: [], weightHistory: [], theme: fallbackTheme };
+    state = { 
+      profile: { ...DEFAULT_PROFILE }, 
+      items: [], 
+      weightHistory: [], 
+      favorites: [], 
+      history: [], 
+      currentDate: new Date().toISOString().split("T")[0], 
+      theme: fallbackTheme 
+    };
   }
+}
+
+// Função auxiliar para gerir o Histórico Inteligente
+function addToHistory(itemData) {
+  // Guardamos apenas o "molde" do alimento para não acumular IDs únicos
+  const template = { 
+    name: itemData.name, calories: itemData.calories, protein: itemData.protein, 
+    fat: itemData.fat, carbs: itemData.carbs, price: itemData.price, 
+    packageQuantity: itemData.packageQuantity, packagePrice: itemData.packagePrice, 
+    barcode: itemData.barcode 
+  };
+  // Removemos se já existir para o colocar no topo e mantemos apenas os últimos 30
+  const filtered = state.history.filter(h => h.name !== template.name);
+  return [template, ...filtered].slice(0, 30);
 }
 
 export function setProfileField(key, value) {
@@ -130,7 +158,12 @@ export function setTheme(theme) {
 }
 
 export function addItem(itemData) {
-  commit({ ...state, items: [...state.items, normalizeItem(itemData)] });
+  const newItem = normalizeItem(itemData);
+  // A MÁQUINA DO TEMPO EM AÇÃO: Força o item a ter a data que o utilizador escolheu
+  newItem.date = state.currentDate; 
+  
+  const nextHistory = addToHistory(newItem);
+  commit({ ...state, items: [...state.items, newItem], history: nextHistory });
 }
 
 export function updateItem(id, itemData) {
@@ -149,4 +182,21 @@ export function addWeightEntry(entry) {
   const filtered = state.weightHistory.filter(e => e.date !== entry.date);
   const next = [...filtered, entry].sort((a, b) => new Date(a.date) - new Date(b.date));
   commit({ ...state, weightHistory: next });
+}
+
+export function setCurrentDate(dateString) {
+  commit({ ...state, currentDate: dateString });
+}
+
+export function toggleFavorite(foodTemplate) {
+  const isFavorite = state.favorites.some(f => f.name === foodTemplate.name);
+  let nextFavorites;
+  
+  if (isFavorite) {
+    nextFavorites = state.favorites.filter(f => f.name !== foodTemplate.name);
+  } else {
+    nextFavorites = [...state.favorites, foodTemplate];
+  }
+  
+  commit({ ...state, favorites: nextFavorites });
 }

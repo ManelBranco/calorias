@@ -2,6 +2,8 @@ import { addItem, updateItem, MEALS } from "./state.js";
 import { searchFoodCombined, fetchProductByEan, handleApiError } from "./api.js";
 import * as scanner from "./scanner.js";
 import { parseDecimal, decimalToInput, showToast } from "./utils.js";
+import { toggleFavorite } from "./state.js";
+
 
 let currentProductPer100g = null;
 let editingItem = null;
@@ -235,8 +237,38 @@ function bindForm() {
     updateCalculatedPrice();
   });
 
+  // Botão Favorito
+  document.querySelector("#favoriteToggleBtn")?.addEventListener("click", () => {
+    const name = document.querySelector("#itemNameInput").value.trim();
+    if (!name) {
+      showToast("Dá primeiro um nome ao alimento.");
+      return;
+    }
+    const template = {
+      name,
+      packageQuantity: parseDecimal(document.querySelector("#packageQuantityInput").value),
+      packagePrice: parseDecimal(document.querySelector("#packagePriceInput").value),
+      calories: Math.round(parseDecimal(document.querySelector("#itemCaloriesInput").value)),
+      protein: parseDecimal(document.querySelector("#itemProteinInput").value),
+      fat: parseDecimal(document.querySelector("#itemFatInput").value),
+      carbs: parseDecimal(document.querySelector("#itemCarbsInput").value),
+      price: parseDecimal(document.querySelector("#itemPriceInput").value),
+    };
+    toggleFavorite(template);
+    updateFavoriteButtonVisual(name);
+    
+    // Mostra o toast consoante se adicionou ou removeu
+    if (state.favorites && state.favorites.some(f => f.name === name)) {
+      showToast("Adicionado aos Favoritos ⭐");
+    } else {
+      showToast("Removido dos Favoritos 🤍");
+    }
+  });
+
+  // Submeter Formulário (Guardar)
   document.querySelector("#itemForm").addEventListener("submit", e => {
     e.preventDefault();
+    
     const data = {
       name: document.querySelector("#itemNameInput").value,
       packageQuantity: parseDecimal(document.querySelector("#packageQuantityInput").value),
@@ -254,7 +286,14 @@ function bindForm() {
       updateItem(editingItem.id, { ...data, date: editingItem.date, barcode: editingItem.barcode });
       showToast("Atualizado!");
     } else {
-      addItem({ ...data, date: new Date().toISOString() });
+      // Proteção de Data: Garante que a data guarda no dia correto usando a Máquina do Tempo
+      let targetDate = new Date().toISOString();
+      if (typeof state !== 'undefined' && state.currentDate) {
+        // Colocamos a hora ao meio-dia (T12:00:00) para evitar que os fusos horários mudem o dia!
+        targetDate = new Date(state.currentDate + "T12:00:00").toISOString();
+      }
+      
+      addItem({ ...data, date: targetDate });
       showToast("Guardado!");
     }
     closeModal();
@@ -285,4 +324,55 @@ function updateCalculatedPrice() {
     const finalPrice = (packPrice / packQtd) * itemQtd;
     document.querySelector("#itemPriceInput").value = decimalToInput(finalPrice);
   }
+}
+
+// Substitui ou adiciona esta função no modalUI.js
+function renderHistoryPanel() {
+  const panel = document.querySelector("#historyPanel");
+  if (!panel) return;
+
+  // Se não houver histórico, esconde o painel
+  if (!state.history || state.history.length === 0) {
+    panel.style.display = "none";
+    return;
+  }
+  
+  panel.style.display = "flex";
+  
+  // Renderiza os botões com base no array state.history
+  panel.innerHTML = state.history.map(item => `
+    <button type="button" class="pill" style="cursor: pointer; flex-shrink: 0; background: var(--surface); border: 1px solid var(--border);" data-history-name="${item.name}">
+      🕒 ${item.name}
+    </button>
+  `).join("");
+
+  // Adiciona o evento de clique a cada botão para preencher o formulário
+  panel.querySelectorAll("button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const histItem = state.history.find(h => h.name === btn.dataset.historyName);
+      if (histItem) {
+        document.querySelector("#itemNameInput").value = histItem.name || "";
+        document.querySelector("#packageQuantityInput").value = histItem.packageQuantity ? histItem.packageQuantity : "";
+        document.querySelector("#packagePriceInput").value = histItem.packagePrice ? histItem.packagePrice : "";
+        document.querySelector("#itemCaloriesInput").value = histItem.calories ? Math.round(histItem.calories) : "";
+        document.querySelector("#itemProteinInput").value = histItem.protein ? histItem.protein : "";
+        document.querySelector("#itemFatInput").value = histItem.fat ? histItem.fat : "";
+        document.querySelector("#itemCarbsInput").value = histItem.carbs ? histItem.carbs : "";
+        document.querySelector("#itemPriceInput").value = histItem.price ? histItem.price : "";
+        
+        // Atualiza a UI e os preços calculados
+        updateFavoriteButtonVisual(histItem.name);
+        if (typeof updateCalculatedPrice === 'function') updateCalculatedPrice();
+        showToast("Preenchido a partir do histórico.");
+      }
+    });
+  });
+}
+
+function updateFavoriteButtonVisual(foodName) {
+  const favBtn = document.querySelector("#favoriteToggleBtn");
+  if (!favBtn) return;
+  const isFav = state.favorites && state.favorites.some(f => f.name === foodName);
+  favBtn.textContent = isFav ? "⭐" : "🤍";
+  favBtn.style.background = isFav ? "rgba(255, 143, 0, 0.15)" : "var(--surface)";
 }

@@ -38,3 +38,20 @@ export function initToast() {
     toast.classList.remove("show");
   });
 }
+
+export function getDatesForLast7Days(referenceDateStr) {
+  const dates = [];
+  const refDate = new Date(referenceDateStr);
+  // Pega nos últimos 7 dias, incluindo o dia de referência
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(refDate);
+    d.setDate(refDate.getDate() - i);
+    dates.push(d.toISOString().split("T")[0]);
+  }
+  return dates;
+}
+
+export function isSameDate(dateStr1, dateStr2) {
+  // Garante que só comparamos o formato YYYY-MM-DD
+  return dateStr1.split("T")[0] === dateStr2.split("T")[0];
+}
