@@ -10,7 +10,38 @@
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
   </head>
   <body>
-    <div class="app-shell">
+    <div class="auth-screen" id="authScreen" hidden>
+      <div class="card auth-card">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">C€</div>
+          <div>
+            <p class="eyebrow">Diário inteligente</p>
+            <h1>Calorias & Orçamento</h1>
+          </div>
+        </div>
+        <p>Inicia sessão para sincronizar os teus dados entre dispositivos.</p>
+
+        <div class="segmented-control" id="authModeToggle">
+          <button class="segment active" type="button" data-mode="signin">Entrar</button>
+          <button class="segment" type="button" data-mode="signup">Criar conta</button>
+        </div>
+
+        <form id="authForm" class="profile-form">
+          <label>Email
+            <input id="authEmail" type="email" required autocomplete="email" />
+          </label>
+          <label>Palavra-passe
+            <input id="authPassword" type="password" required minlength="6" autocomplete="current-password" />
+          </label>
+          <p class="auth-error" id="authError" hidden></p>
+          <button class="primary-button full-width" type="submit" id="authSubmitButton">Entrar</button>
+        </form>
+
+        <button class="text-button full-width" type="button" id="continueOfflineButton">Continuar sem conta (só neste dispositivo)</button>
+      </div>
+    </div>
+
+    <div class="app-shell" id="appShell" hidden>
       <header class="app-header">
         <div class="brand">
           <div class="brand-mark" aria-hidden="true">C€</div>
@@ -24,6 +55,9 @@
           <span class="status-chip">PT-PT</span>
           <button class="icon-button" id="themeToggle" type="button" aria-label="Alternar tema">
             <span id="themeIcon" aria-hidden="true">🌙</span>
+          </button>
+          <button class="icon-button" id="signOutButton" type="button" aria-label="Terminar sessão" hidden>
+            <span aria-hidden="true">⎋</span>
           </button>
         </div>
       </header>
@@ -120,7 +154,7 @@
               </div>
               <div class="weight-inline-form">
                 <input id="weightLogDate" type="date" />
-                <input id="weightLogValue" type="number" step="0.1" placeholder="Ex: 85.5" style="width:100px;" />
+                <input id="weightLogValue" type="number" step="0.1" placeholder="Ex: 85.5" />
                 <button id="addWeightLogButton" class="secondary-button" type="button" style="padding:4px 12px;">Gravar</button>
               </div>
               <div class="chart-box"><canvas id="weightProgressChart" style="max-height: 180px; width: 100%;" aria-label="Gráfico de evolução de peso" role="img"></canvas></div>
@@ -139,6 +173,17 @@
                 </div>
               </div>
               <div class="chart-box"><canvas id="spendingChart" style="max-height: 220px; width: 100%;" aria-label="Gráfico de evolução de gastos" role="img"></canvas></div>
+            </article>
+
+            <!-- Análise Semanal de Calorias -->
+            <article class="card" style="grid-column: 1 / -1;">
+              <div class="card-header">
+                <div>
+                  <p class="eyebrow">Últimos 7 dias</p>
+                  <h3>Média de Calorias Consumidas</h3>
+                </div>
+              </div>
+              <div class="chart-box"><canvas id="weeklyAverageChart" style="max-height: 220px; width: 100%;" aria-label="Gráfico de calorias diárias com média semanal" role="img"></canvas></div>
             </article>
 
             <!-- Secção da Lista de Compras -->

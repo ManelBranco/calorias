@@ -3,6 +3,7 @@ import { debounce } from "./storage.js";
 let macroChartInstance = null;
 let weightChartInstance = null;
 let spendingChartInstance = null;
+let weeklyAvgChartInstance = null;
 
 // Variáveis de controlo para o filtro do gráfico de gastos
 export let currentSpendingRange = 7;
@@ -170,4 +171,58 @@ const updateSpendingChartInternal = debounce((items) => {
 
 export function updateSpendingChart(items) {
   updateSpendingChartInternal(items);
+}
+
+// 4. Gráfico de Média Semanal de Calorias (Barras + Linha de Média)
+const updateWeeklyAverageChartInternal = debounce((dailyData) => {
+  const canvas = document.getElementById("weeklyAverageChart");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+
+  const labels = dailyData.labels.map(formatDayLabel);
+  const avgLine = dailyData.values.map(() => dailyData.average);
+
+  if (weeklyAvgChartInstance) {
+    weeklyAvgChartInstance.data.labels = labels;
+    weeklyAvgChartInstance.data.datasets[0].data = dailyData.values;
+    weeklyAvgChartInstance.data.datasets[1].data = avgLine;
+    weeklyAvgChartInstance.data.datasets[1].label = `Média (${dailyData.average} kcal)`;
+    weeklyAvgChartInstance.update();
+    return;
+  }
+
+  weeklyAvgChartInstance = new Chart(ctx, {
+    data: {
+      labels,
+      datasets: [
+        {
+          type: "bar",
+          label: "Calorias",
+          data: dailyData.values,
+          backgroundColor: "#1043af",
+          borderRadius: 6,
+          maxBarThickness: 32,
+        },
+        {
+          type: "line",
+          label: `Média (${dailyData.average} kcal)`,
+          data: avgLine,
+          borderColor: "#ff8f00",
+          borderDash: [6, 4],
+          pointRadius: 0,
+          borderWidth: 2,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: true, position: "bottom" } },
+      scales: { y: { beginAtZero: true } },
+    },
+  });
+}, 150);
+
+export function updateWeeklyAverageChart(dailyData) {
+  updateWeeklyAverageChartInternal(dailyData);
 }

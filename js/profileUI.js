@@ -1,9 +1,9 @@
 import { state, onChange, setProfileField, resetProfile, ACTIVITY_LEVELS, GOALS, MACRO_PLANS } from "./state.js";
 import { calculateProfile, calculateMusclePotential } from "./tdee.js";
 import { calculateMacroTargets } from "./macro.js";
-import { updateSpendingChart, setSpendingRange } from "./charts.js";
+import { updateSpendingChart, updateWeeklyAverageChart, setSpendingRange } from "./charts.js";
 import { numberFormatter, formatCalories, parseDecimal } from "./utils.js";
-import { generateShoppingList } from "./calculations.js"; // Importar a função!
+import { generateShoppingList, calculateDailyCaloriesLast7Days } from "./calculations.js"; // Importar a função!
 import { currencyFormatter } from "./utils.js"; // Para formatar o dinheiro
 
 
@@ -91,9 +91,9 @@ list.forEach(item => {
       totalCost += item.weeklyCost;
       html += `
         <tr style="border-bottom: 1px solid var(--surface-soft);">
-          <td style="padding: 10px 8px;"><strong>⭐ ${item.name}</strong></td>
-          <td style="padding: 10px 8px;">${Math.round(item.weeklyQuantity)}g/ml</td>
-          <td style="padding: 10px 8px;">${currencyFormatter.format(item.weeklyCost)}</td>
+          <td data-label="Alimento" style="padding: 10px 8px;"><strong>⭐ ${item.name}</strong></td>
+          <td data-label="Qtd. Necessária" style="padding: 10px 8px;">${Math.round(item.weeklyQuantity)}g/ml</td>
+          <td data-label="Custo Estimado" style="padding: 10px 8px;">${currencyFormatter.format(item.weeklyCost)}</td>
         </tr>
       `;
     }
@@ -118,6 +118,7 @@ function render() {
   renderProfileForm();
   renderProfileSummary();
   updateSpendingChart(state.items);
+  updateWeeklyAverageChart(calculateDailyCaloriesLast7Days(state.items, state.currentDate));
   renderShoppingList();
 }
 

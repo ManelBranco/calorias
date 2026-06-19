@@ -1,8 +1,7 @@
-import { addItem, updateItem, MEALS } from "./state.js";
+import { state, addItem, updateItem, MEALS, toggleFavorite } from "./state.js";
 import { searchFoodCombined, fetchProductByEan, handleApiError } from "./api.js";
 import * as scanner from "./scanner.js";
 import { parseDecimal, decimalToInput, showToast } from "./utils.js";
-import { toggleFavorite } from "./state.js";
 
 
 let currentProductPer100g = null;
@@ -76,24 +75,8 @@ export function openModal(meal = "snacks", editItem_ = null) {
     document.querySelector("#itemPriceInput").value = "0,00";
   }
 
-  if (editingItem) {
-    document.querySelector("#modalTitle").textContent = "Editar alimento";
-    submitButton.textContent = "Atualizar";
-    document.querySelector("#itemNameInput").value = editingItem.name;
-    document.querySelector("#itemQuantityInput").value = decimalToInput(editingItem.quantity || 100);
-    document.querySelector("#itemCaloriesInput").value = Math.round(editingItem.calories);
-    document.querySelector("#itemProteinInput").value = decimalToInput(editingItem.protein);
-    document.querySelector("#itemFatInput").value = decimalToInput(editingItem.fat);
-    document.querySelector("#itemCarbsInput").value = decimalToInput(editingItem.carbs);
-    document.querySelector("#itemPriceInput").value = decimalToInput(editingItem.price);
-    document.querySelector("#itemMealSelect").value = editingItem.meal;
-  } else {
-    document.querySelector("#modalTitle").textContent = "Adicionar alimento";
-    submitButton.textContent = "Guardar alimento";
-    document.querySelector("#itemMealSelect").value = meal;
-    document.querySelector("#itemQuantityInput").value = "100";
-    document.querySelector("#itemPriceInput").value = "0,00";
-  }
+  updateFavoriteButtonVisual(editingItem ? editingItem.name : "");
+  renderHistoryPanel();
 
   const modal = document.querySelector("#itemModal");
   modal.classList.add("open");

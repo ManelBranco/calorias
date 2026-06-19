@@ -1,4 +1,10 @@
 import { debounce, readJSON, writeJSON } from "./storage.js";
+import {
+  syncItemUpsert,
+  syncItemDelete,
+  syncWeightUpsert,
+  syncProfileUpsert,
+} from "./supabase/dataService.js";
 
 export const ACTIVITY_LEVELS = {
   sedentary: { label: "Sedentário", description: "Pouco ou nenhum exercício", multiplier: 1.2 },
@@ -46,6 +52,17 @@ export function onChange(listener) {
 }
 function notify() {
   listeners.forEach(listener => listener(state));
+}
+
+// Quando autenticado, currentUserId guarda o id Supabase e cada mutação
+// é também colocada na fila de sincronização (ver supabase/dataService.js).
+// Em modo "sem conta", fica null e a app comporta-se como antes (só localStorage).
+let currentUserId = null;
+export function setUserId(userId) {
+  currentUserId = userId;
+}
+export function getUserId() {
+  return currentUserId;
 }
 
 const persistDebounced = debounce(() => writeJSON(STORAGE_KEY, state), 300);
@@ -145,8 +162,12 @@ function addToHistory(itemData) {
   return [template, ...filtered].slice(0, 30);
 }
 
+const syncProfileDebounced = debounce((profile, userId) => syncProfileUpsert(profile, userId), 600);
+
 export function setProfileField(key, value) {
-  commit({ ...state, profile: { ...state.profile, [key]: value } });
+  const nextProfile = { ...state.profile, [key]: value };
+  commit({ ...state, profile: nextProfile });
+  if (currentUserId) syncProfileDebounced(nextProfile, currentUserId);
 }
 
 export function resetProfile() {
@@ -164,14 +185,18 @@ export function addItem(itemData) {
   
   const nextHistory = addToHistory(newItem);
   commit({ ...state, items: [...state.items, newItem], history: nextHistory });
+  if (currentUserId) syncItemUpsert(newItem, currentUserId);
 }
 
 export function updateItem(id, itemData) {
-  commit({ ...state, items: state.items.map(i => (i.id === id ? normalizeItem({ ...itemData, id }) : i)) });
+  const updated = normalizeItem({ ...itemData, id });
+  commit({ ...state, items: state.items.map(i => (i.id === id ? updated : i)) });
+  if (currentUserId) syncItemUpsert(updated, currentUserId);
 }
 
 export function removeItem(id) {
   commit({ ...state, items: state.items.filter(i => i.id !== id) });
+  if (currentUserId) syncItemDelete(id);
 }
 
 export function clearItems() {
@@ -182,6 +207,7 @@ export function addWeightEntry(entry) {
   const filtered = state.weightHistory.filter(e => e.date !== entry.date);
   const next = [...filtered, entry].sort((a, b) => new Date(a.date) - new Date(b.date));
   commit({ ...state, weightHistory: next });
+  if (currentUserId) syncWeightUpsert(entry, currentUserId);
 }
 
 export function setCurrentDate(dateString) {
@@ -199,4 +225,48 @@ export function toggleFavorite(foodTemplate) {
   }
   
   commit({ ...state, favorites: nextFavorites });
+}
+
+function mapRemoteItem(row) {
+  return normalizeItem({
+    id: row.id,
+    name: row.name,
+    calories: row.calories,
+    protein: row.protein,
+    fat: row.fat,
+    carbs: row.carbs,
+    price: row.price,
+    quantity: row.quantity,
+    packageQuantity: row.package_quantity,
+    packagePrice: row.package_price,
+    barcode: row.barcode,
+    date: `${row.consumed_date}T12:00:00`,
+    meal: row.meal,
+  });
+}
+
+// Chamada uma vez, logo a seguir ao login, com o resultado de fetchRemoteState().
+// Estratégia: o servidor é a fonte de verdade para o que já lá está, mas
+// preservamos quaisquer itens criados offline que ainda não tenham chegado lá
+// (continuam na fila de sincronização e serão enviados a seguir).
+export function mergeRemoteState(remote) {
+  const remoteItems = Array.isArray(remote.items) ? remote.items.map(mapRemoteItem) : [];
+  const remoteIds = new Set(remoteItems.map(i => i.id));
+  const pendingLocalItems = state.items.filter(i => !remoteIds.has(i.id));
+
+  const remoteWeights = validateWeightHistory(
+    (remote.weightHistory || []).map(w => ({ date: w.log_date, weight: w.weight }))
+  );
+  const localOnlyWeights = state.weightHistory.filter(
+    local => !remoteWeights.some(r => r.date === local.date)
+  );
+
+  const mergedProfile = remote.profile ? validateProfile(remote.profile) : state.profile;
+
+  commit({
+    ...state,
+    items: [...remoteItems, ...pendingLocalItems],
+    weightHistory: [...remoteWeights, ...localOnlyWeights].sort((a, b) => new Date(a.date) - new Date(b.date)),
+    profile: mergedProfile,
+  });
 }

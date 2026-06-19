@@ -1213,3 +1213,114 @@ select:focus {
     font-size: 16px;
   }
 }
+/* --- Correções Mobile-First adicionais --- */
+
+/* Evita qualquer overflow horizontal acidental no documento todo */
+html, body { overflow-x: hidden; }
+.app-shell { overflow-x: clip; }
+
+/* Touch targets mínimos consistentes (44px) */
+.delete-button {
+  width: 44px;
+  height: 44px;
+}
+
+/* Lista de Compras: tabela vira "cartões" empilhados em mobile */
+@media (max-width: 600px) {
+  #shoppingListContainer table,
+  #shoppingListContainer thead,
+  #shoppingListContainer tbody,
+  #shoppingListContainer tr,
+  #shoppingListContainer td {
+    display: block;
+    width: 100%;
+  }
+  #shoppingListContainer thead { display: none; }
+  #shoppingListContainer tr {
+    margin-bottom: 10px;
+    padding: 10px 4px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-small);
+  }
+  #shoppingListContainer td {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 8px;
+    border-bottom: none !important;
+  }
+  #shoppingListContainer td::before {
+    content: attr(data-label);
+    color: var(--muted);
+    font-weight: 700;
+    margin-right: 12px;
+  }
+  #shoppingListContainer tfoot tr { border: none; }
+}
+
+/* Grids de 3 colunas precisam de um passo intermédio antes do 1fr final */
+@media (max-width: 600px) {
+  .potential-grid,
+  .nutrient-grid,
+  .diary-macro-grid,
+  .macro-plan-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 380px) {
+  .potential-grid,
+  .nutrient-grid,
+  .diary-macro-grid,
+  .macro-plan-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Formulário inline de peso: inputs fluidos, sem larguras fixas */
+.weight-inline-form input {
+  flex: 1 1 120px;
+  min-width: 0;
+}
+
+/* Histórico inteligente (modal): scroll horizontal nativo, sem scrollbar feia */
+#historyPanel {
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+#historyPanel::-webkit-scrollbar { display: none; }
+#historyPanel .pill {
+  min-height: 40px;
+}
+
+/* Respeita notches/home indicator em iOS */
+.bottom-nav { bottom: max(18px, env(safe-area-inset-bottom)); }
+.floating-action-button { bottom: max(96px, calc(env(safe-area-inset-bottom) + 80px)); }
+
+/* --- Ecrã de Autenticação --- */
+.auth-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 22px;
+}
+
+.auth-card {
+  width: min(420px, 100%);
+  padding: clamp(22px, 4vw, 32px);
+  display: grid;
+  gap: 16px;
+}
+
+.auth-card .brand { justify-content: flex-start; margin-bottom: 0; }
+
+.auth-error {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(198, 40, 40, 0.1);
+  color: var(--danger);
+  font-size: 0.88rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+[hidden] { display: none !important; }

@@ -21,6 +21,24 @@ export function calculateWeeklyStats(items, referenceDateStr) {
    };
 }
 
+// Calorias dia-a-dia dos últimos 7 dias (para o gráfico de barras + linha de média)
+export function calculateDailyCaloriesLast7Days(items, referenceDateStr) {
+  const last7Days = getDatesForLast7Days(referenceDateStr);
+  const totalsByDay = Object.fromEntries(last7Days.map(d => [d, 0]));
+
+  items.forEach(item => {
+    const itemDate = String(item.date || "").split("T")[0];
+    if (totalsByDay[itemDate] !== undefined) {
+      totalsByDay[itemDate] += item.calories || 0;
+    }
+  });
+
+  const values = last7Days.map(d => Math.round(totalsByDay[d]));
+  const average = Math.round(values.reduce((a, b) => a + b, 0) / values.length);
+
+  return { labels: last7Days, values, average };
+}
+
 // O Motor da Lista de Compras / Despensa (O teu "Masterplan")
 export function generateShoppingList(weeklyItems, favorites) {
    const list = favorites.map(fav => {
